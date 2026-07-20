@@ -216,7 +216,7 @@
             grid-template-columns: repeat(4, 1fr);
             gap: 16px;
             padding: 16px;
-            height: calc(100vh - 48px - 28px);
+            height: calc(100vh - 48px);
             overflow: hidden;
         }
 
@@ -288,6 +288,7 @@
 
         .input-row {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             margin-bottom: 12px;
         }
@@ -325,7 +326,7 @@
         }
 
         textarea {
-            resize: vertical;
+            resize: none;
             min-height: 80px;
         }
 
@@ -406,17 +407,17 @@
 
         .plate-grid {
             display: grid;
-            grid-template-columns: minmax(16px, 1fr) repeat(6, 4fr);
-            gap: min(1vh, 4px);
+            grid-template-columns: 16px repeat(11, 1fr);
+            gap: 4px;
             width: 100%;
-            max-width: 320px;
+            max-width: 300px;
             margin: 0 auto;
         }
 
         .header-label {
             font-size: 10px;
             font-weight: 600;
-            color: var(--text-muted);
+            color: var(--text-secondary);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -425,13 +426,14 @@
         .vial {
             aspect-ratio: 1;
             border-radius: 50%;
-            border: 1.5px solid var(--empty-border);
+            border: 2px solid var(--empty-border);
             background: var(--empty-bg);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0;
-            /* Hide text */
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-secondary);
             position: relative;
             transition: var(--transition);
             cursor: default;
@@ -449,31 +451,60 @@
             box-shadow: var(--shadow-md);
         }
 
+        .vial.fixed {
+            border-color: var(--fixed-border);
+            background: var(--fixed-bg);
+        }
+
+        .vial.std {
+            border-color: var(--std-border);
+            background: var(--std-bg);
+        }
+
+        .vial.spike {
+            border-color: var(--spike-border);
+            background: var(--spike-bg);
+        }
+
+        .vial.occupied {
+            border-color: var(--occupied-border);
+            background: var(--occupied-bg);
+        }
+
+        .vial.highlighted {
+            border-color: var(--highlight-border);
+            background: var(--highlight-bg);
+            box-shadow: 0 0 0 2px var(--highlight-border);
+        }
+
+        .vial.vial-completed {
+            opacity: 0.5;
+            filter: grayscale(100%);
+        }
+
         /* Legend */
         .legend {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
             justify-content: center;
-            margin-top: 16px;
-            padding: 12px;
-            background: var(--surface-hover);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
+            gap: 8px;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border-color);
             width: 100%;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            gap: 6px;
-            font-size: 11px;
+            gap: 4px;
+            font-size: 10px;
             font-weight: 500;
         }
 
         .legend-dot {
-            width: 12px;
-            height: 12px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
             border: 1.5px solid;
         }
@@ -599,7 +630,8 @@
         ---------------------------------------------------- */
         .table-container {
             flex: 1;
-            overflow: auto;
+            overflow-y: auto;
+            overflow-x: auto;
             border: 1px solid var(--border-strong);
             border-radius: var(--radius-md);
             background: var(--surface-color);
@@ -693,45 +725,6 @@
             max-width: 500px;
             box-shadow: var(--shadow-lg);
         }
-
-        /* ----------------------------------------------------
-           Responsive Media Queries
-        ---------------------------------------------------- */
-        @media (max-width: 1400px) {
-            body {
-                overflow: visible;
-                /* Allow scrolling */
-            }
-
-            .dashboard {
-                grid-template-columns: repeat(2, 1fr);
-                height: auto;
-                min-height: calc(100vh - 48px - 28px);
-                overflow: visible;
-            }
-
-            .col {
-                min-height: 500px;
-            }
-        }
-
-        @media (max-width: 900px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            .global-header {
-                flex-direction: column;
-                height: auto;
-                padding: 12px 20px;
-                gap: 12px;
-            }
-
-            .dashboard {
-                min-height: calc(100vh - 120px - 28px);
-                /* Account for taller header */
-            }
-        }
     </style>
 </head>
 
@@ -799,40 +792,6 @@
     <!-- 4-COLUMN DASHBOARD -->
     <div class="dashboard">
 
-        <!-- COLUMN 1: PLATE LAYOUT -->
-        <div class="col" id="col-plate">
-            <div class="col-header">
-                <h2>Plate Layout</h2>
-            </div>
-            <div class="col-body">
-                <div class="plate-container">
-                    <div id="plate-grid" class="plate-grid"></div>
-                </div>
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--empty-bg); border-color:var(--empty-border)">
-                        </div> Empty
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--fixed-bg); border-color:var(--fixed-border)">
-                        </div> Fixed
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--std-bg); border-color:var(--std-border)"></div>
-                        Std
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--spike-bg); border-color:var(--spike-border)">
-                        </div> Spike
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot"
-                            style="background:var(--occupied-bg); border-color:var(--occupied-border)"></div> Sample
-                    </div>
-                </div>
-            </div>
-        </div>
-
         <!-- COLUMN 2: METHOD & SETUP -->
         <div class="col">
             <div class="col-header">
@@ -851,7 +810,8 @@
                         00:00</div>
                     <div style="display:flex; gap:8px;">
                         <input type="number" id="cond-input" value="15" style="width:60px;">
-                        <button class="btn btn-primary" onclick="startCondTimer()" style="flex:1;">Start</button>
+                        <button id="cond-start-btn" class="btn btn-primary" onclick="startCondTimer()"
+                            style="flex:1;">Start</button>
                         <button class="btn btn-secondary" onclick="resetCondTimer()">Reset</button>
                     </div>
                 </div>
@@ -930,6 +890,40 @@
                         oninput="updateVisualization()" style="width:100%; height: 100px;"></textarea>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- COLUMN 1: PLATE LAYOUT -->
+        <div class="col" id="col-plate">
+            <div class="col-header">
+                <h2>Plate Layout</h2>
+            </div>
+            <div class="col-body">
+                <div class="plate-container">
+                    <div id="plate-grid" class="plate-grid"></div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--empty-bg); border-color:var(--empty-border)">
+                        </div> Empty
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--fixed-bg); border-color:var(--fixed-border)">
+                        </div> Fixed
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--std-bg); border-color:var(--std-border)"></div>
+                        Std
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot" style="background:var(--spike-bg); border-color:var(--spike-border)">
+                        </div> Spike
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-dot"
+                            style="background:var(--occupied-bg); border-color:var(--occupied-border)"></div> Sample
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1014,8 +1008,8 @@
 
                 <div class="export-actions">
                     <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
-                    <button class="btn btn-secondary" onclick="copyColumn('name')">Copy Names</button>
-                    <button class="btn btn-secondary" onclick="copyColumn('vial')">Copy Vials</button>
+                    <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
+                    <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
                 </div>
 
                 <div class="table-container">
@@ -1038,11 +1032,6 @@
 
 
     </div> <!-- end dashboard -->
-
-    <div
-        style="height: 28px; display: flex; align-items: center; justify-content: center; background: var(--surface-alt); border-top: 1px solid var(--border-color); color: var(--text-muted); font-size: 11px; flex-shrink: 0; z-index: 100;">
-        &copy; 2026 Laboratory Systems. All rights reserved.
-    </div>
 
     <script>
         // Constants & Globals
@@ -1210,23 +1199,25 @@
         function createBoard() {
             const grid = document.getElementById('plate-grid');
             grid.innerHTML = '';
-            for (let c = COLS; c >= 1; c--) {
+            
+            grid.appendChild(document.createElement('div'));
+            for (let c = 1; c <= COLS; c++) {
+                const header = document.createElement('div');
+                header.className = 'header-label'; header.innerText = c;
+                grid.appendChild(header);
+            }
+            
+            ROWS.forEach(row => {
                 const rowHeader = document.createElement('div');
-                rowHeader.className = 'header-label'; rowHeader.innerText = c;
+                rowHeader.className = 'header-label'; rowHeader.innerText = row;
                 grid.appendChild(rowHeader);
-                ROWS.forEach(row => {
+                for (let c = 1; c <= COLS; c++) {
                     const vialId = `${row}${c}`;
                     const vial = document.createElement('div');
                     vial.className = 'vial'; vial.id = `vial-${vialId}`;
                     vial.innerHTML = `<span>${c}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
                     grid.appendChild(vial);
-                });
-            }
-            grid.appendChild(document.createElement('div'));
-            ROWS.forEach(row => {
-                const header = document.createElement('div');
-                header.className = 'header-label'; header.innerText = row;
-                grid.appendChild(header);
+                }
             });
         }
 
@@ -1235,7 +1226,7 @@
             isRunning = !isRunning;
             const btn = document.getElementById('start-run-btn');
             if (isRunning) {
-                btn.innerHTML = '⏸ PAUSE RUN';
+                btn.innerHTML = 'Pause Run';
                 btn.classList.replace('btn-success', 'btn-warning');
                 runFinishedAlerted = false;
             } else {
@@ -1629,8 +1620,7 @@
 
         createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
     </script>
-    <footer
-        style="text-align: center; margin-top: 40px; padding-bottom: 20px; font-size: 9pt; color: var(--text-secondary);">
+    <footer style="text-align: center; font-size: 10px; color: var(--text-muted); padding: 4px;">
         &copy; 2026 | ccuadmin01
     </footer>
 </body>
