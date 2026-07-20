@@ -78,6 +78,12 @@
             --radius-md: 0px;
             --radius-lg: 0px;
             --transition: 0s;
+
+            --input-bg: #FFFFFF;
+            --btn-bg: #E1E1E1;
+            --btn-text: #000000;
+            --btn-border: #696969;
+            --btn-border-dark: #333333;
         }
 
         /* Dark Theme */
@@ -107,6 +113,51 @@
 
             --occupied-bg: #052e16;
             --occupied-border: #16a34a;
+
+            --input-bg: #1e293b;
+            --btn-bg: #334155;
+            --btn-text: #f8fafc;
+            --btn-border: #64748b;
+            --btn-border-dark: #0f172a;
+        }
+
+
+        /* Responsive Mobile Layout */
+        @media (max-width: 1200px) {
+            .dashboard {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .col {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .col:last-child {
+                border-bottom: none;
+            }
+
+            .plate-grid {
+                margin: 0 auto;
+            }
+
+            .global-header {
+                flex-direction: column;
+                gap: 12px;
+                height: auto;
+                padding: 16px;
+            }
+
+            .header-right {
+                width: 100%;
+                justify-content: center;
+            }
         }
 
         /* Basic Resets */
@@ -232,7 +283,8 @@
         }
 
         .col-header {
-            padding: 12px 16px;
+            padding: 0 16px;
+            height: 44px;
             border-bottom: 1px solid var(--border-color);
             background: var(--surface-hover);
             display: flex;
@@ -314,7 +366,7 @@
             border-radius: 0;
             font-family: var(--font-family);
             font-size: 13px;
-            background: #FFFFFF;
+            background: var(--input-bg);
             color: var(--text-primary);
         }
 
@@ -338,11 +390,11 @@
             font-weight: 400;
             font-size: 13px;
             cursor: default;
-            border: 1px solid #696969;
-            border-bottom: 1px solid #333333;
-            border-right: 1px solid #333333;
-            background: #E1E1E1;
-            color: #000000;
+            border: 1px solid var(--btn-border);
+            border-bottom: 1px solid var(--btn-border-dark);
+            border-right: 1px solid var(--btn-border-dark);
+            background: var(--btn-bg);
+            color: var(--btn-text);
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -350,14 +402,14 @@
         }
 
         .btn:hover {
-            background: #E8E8E8;
+            background: var(--surface-hover);
         }
 
         .btn:active {
-            border: 1px solid #333333;
-            border-bottom: 1px solid #696969;
-            border-right: 1px solid #696969;
-            background: #D1D1D1;
+            border: 1px solid var(--btn-border-dark);
+            border-bottom: 1px solid var(--btn-border);
+            border-right: 1px solid var(--btn-border);
+            background: var(--surface-hover);
         }
 
         .btn-primary {
@@ -372,17 +424,16 @@
             /* same as btn */
         }
 
-        .btn-secondary:hover {
-            background: #E8E8E8;
+        #start-run-btn {
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px;
+            width: 100%;
         }
 
         .btn-success {
             background: #E1E1E1;
             color: #008000;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 8px;
-            width: 100%;
         }
 
         .btn-success:hover {
@@ -392,10 +443,6 @@
         .btn-warning {
             background: #E1E1E1;
             color: #CC6600;
-            font-size: 14px;
-            font-weight: bold;
-            padding: 8px;
-            width: 100%;
         }
 
         .btn-warning:hover {
@@ -690,7 +737,7 @@
         }
 
         tr:nth-child(even) {
-            background: #fafbfc;
+            background: var(--surface-hover);
         }
 
         tr:hover {
@@ -757,7 +804,7 @@
     </style>
 </head>
 
-<body>
+<body data-theme="dark">
 
     <!-- GLOBAL ENTERPRISE HEADER -->
     <div class="global-header">
@@ -765,14 +812,6 @@
             <h1 title="HPLC Visualizer">HPLC Visualizer</h1>
         </div>
         <div class="header-center">
-            <span class="method-label">Method:</span>
-            <input type="text" id="method-input" value="DEFAULT.M" oninput="updateVisualization()"
-                style="width: 140px;">
-            <span class="method-label" style="margin-left: 16px;">Plate:</span>
-            <select id="plate-select" onchange="updateVisualization()">
-                <option value="1">Plate 1 (1-66)</option>
-                <option value="2">Plate 2 (67-132)</option>
-            </select>
         </div>
         <div class="header-right">
             <button class="btn-header" onclick="toggleCondTimer()">Timer</button>
@@ -828,9 +867,11 @@
             </div>
             <div class="col-body">
 
-                <div id="cond-timer-box" class="card" style="display:none; border-color:var(--primary-color);">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                        <span class="card-title" style="margin:0; color:var(--primary-color);">Conditioning Timer</span>
+                <div id="cond-timer-box" class="card"
+                    style="display:none; position:fixed; top:60px; right:20px; z-index:1000; width:250px; background:var(--surface-color); box-shadow:0 4px 12px rgba(0,0,0,0.2); border-color:var(--primary-color);">
+                    <div id="cond-timer-header"
+                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:move; user-select:none;">
+                        <span class="card-title" style="margin:0; color:var(--primary-color);">Timer</span>
                         <button class="btn-header" style="color:var(--text-secondary);"
                             onclick="toggleCondTimer()">✕</button>
                     </div>
@@ -926,6 +967,13 @@
         <div class="col" id="col-plate">
             <div class="col-header">
                 <h2>Plate Layout</h2>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="method-label" style="font-size:12px;">Plate:</span>
+                    <select id="plate-select" onchange="updateVisualization()" style="padding:2px 4px;">
+                        <option value="1">Plate 1 (1-66)</option>
+                        <option value="2">Plate 2 (67-132)</option>
+                    </select>
+                </div>
             </div>
             <div class="col-body">
                 <div class="plate-container">
@@ -955,6 +1003,39 @@
                 </div>
             </div>
         </div>
+
+        <!-- COLUMN 4: CHEMSTATION EXPORT -->
+        <div class="col">
+            <div class="col-header">
+                <h2>Export</h2>
+            </div>
+            <div class="col-body" style="padding-bottom:0;">
+
+                <div class="export-actions">
+                    <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
+                    <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
+                    <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Vial</th>
+                                <th>Sample Name</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chemstation-body">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+
 
         <!-- COLUMN 3: RUN MONITOR -->
         <div class="col">
@@ -1027,38 +1108,6 @@
                 </div>
             </div>
         </div>
-
-        <!-- COLUMN 4: CHEMSTATION EXPORT -->
-        <div class="col">
-            <div class="col-header">
-                <h2>Export</h2>
-            </div>
-            <div class="col-body" style="padding-bottom:0;">
-
-                <div class="export-actions">
-                    <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
-                    <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
-                    <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
-                </div>
-
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Vial</th>
-                                <th>Sample Name</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chemstation-body">
-                            <!-- Rows injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
-        </div>
-
 
     </div> <!-- end dashboard -->
 
@@ -1143,7 +1192,7 @@
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.5);
 
-                alert("Conditioning Timer Finished!");
+                alert("Timer Finished!");
                 return;
             }
             condRemaining--;
@@ -1182,7 +1231,6 @@
         function saveToCache() {
             const cacheData = {
                 plate: document.getElementById('plate-select').value,
-                method: document.getElementById('method-input').value,
                 injvol: document.getElementById('injvol-input').value,
                 runtime: document.getElementById('runtime-input').value,
                 delay: document.getElementById('delay-input').value,
@@ -1201,13 +1249,13 @@
         }
 
         function loadFromCache() {
-            if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+            if (localStorage.getItem('theme') === 'light') document.body.removeAttribute('data-theme');
+            else document.body.setAttribute('data-theme', 'dark');
             const cachedStr = localStorage.getItem(CACHE_KEY);
             if (cachedStr) {
                 try {
                     const c = JSON.parse(cachedStr);
                     if (c.plate) document.getElementById('plate-select').value = c.plate;
-                    if (c.method !== undefined) document.getElementById('method-input').value = c.method;
                     if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
                     if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
                     if (c.delay !== undefined) document.getElementById('delay-input').value = c.delay;
@@ -1270,7 +1318,36 @@
             if (completedIndices.has(index)) completedIndices.delete(index);
             else completedIndices.add(index);
             updateVisualization();
+            saveToCache();
         }
+
+        // --- Draggable Timer Logic ---
+        const timerBox = document.getElementById('cond-timer-box');
+        const timerHeader = document.getElementById('cond-timer-header');
+
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        timerHeader.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            const rect = timerBox.getBoundingClientRect();
+            dragOffsetX = e.clientX - rect.left;
+            dragOffsetY = e.clientY - rect.top;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            timerBox.style.left = (e.clientX - dragOffsetX) + 'px';
+            timerBox.style.top = (e.clientY - dragOffsetY) + 'px';
+            timerBox.style.right = 'auto'; // Release right anchor
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+        });
+
+        createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
 
         function resetProgress() {
             if (confirm("Reset all checkmarks?")) {
