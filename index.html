@@ -20,64 +20,64 @@
 
         :root {
             /* Typography */
-            --font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            --font-family: 'Calibri', 'Segoe UI', system-ui, sans-serif;
             --font-size-base: 13px;
             --font-size-sm: 12px;
             --font-size-xs: 11px;
 
-            /* Colors: Professional Blue & White Scheme */
-            --bg-color: #f3f5f8;
-            --surface-color: #ffffff;
-            --surface-hover: #fafbfc;
+            /* Colors: Classic WinForms Scheme */
+            --bg-color: #F0F0F0;
+            --surface-color: #F0F0F0;
+            --surface-hover: #E8E8E8;
 
-            --primary-color: #0b5c92;
-            --primary-hover: #08436b;
-            --primary-light: #e6f0f7;
+            --primary-color: #000000;
+            --primary-hover: #333333;
+            --primary-light: #D9D9D9;
 
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #94a3b8;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --text-muted: #666666;
 
-            --border-color: #e2e8f0;
-            --border-strong: #cbd5e1;
+            --border-color: #A0A0A0;
+            --border-strong: #696969;
 
             /* Semantic Colors */
-            --success-color: #16a34a;
-            --success-bg: #dcfce7;
-            --warning-color: #d97706;
-            --warning-bg: #fef3c7;
-            --danger-color: #dc2626;
-            --danger-bg: #fee2e2;
+            --success-color: #008000;
+            --success-bg: #E6F2E6;
+            --warning-color: #FFA500;
+            --warning-bg: #FFF6E6;
+            --danger-color: #FF0000;
+            --danger-bg: #FFE6E6;
 
-            /* Plate Colors (As requested) */
-            --empty-bg: #ffffff;
-            --empty-border: #cbd5e1;
+            /* Plate Colors */
+            --empty-bg: #FFFFFF;
+            --empty-border: #A0A0A0;
 
-            --fixed-bg: #f1f5f9;
-            --fixed-border: #94a3b8;
-            --fixed-text: #475569;
+            --fixed-bg: #E0E0E0;
+            --fixed-border: #808080;
+            --fixed-text: #000000;
 
-            --std-bg: #fff7ed;
-            --std-border: #f97316;
-            --std-text: #c2410c;
+            --std-bg: #FFFFE0;
+            --std-border: #BDB76B;
+            --std-text: #000000;
 
-            --spike-bg: #faf5ff;
-            --spike-border: #a855f7;
-            --spike-text: #7e22ce;
+            --spike-bg: #E6E6FA;
+            --spike-border: #9370DB;
+            --spike-text: #000000;
 
-            --occupied-bg: #f0fdf4;
-            --occupied-border: #22c55e;
-            --occupied-text: #15803d;
+            --occupied-bg: #E0FFE0;
+            --occupied-border: #008000;
+            --occupied-text: #000000;
 
-            --highlight-border: #3b82f6;
-            --highlight-bg: #eff6ff;
+            --highlight-border: #0000FF;
+            --highlight-bg: #E6E6FF;
 
             /* Visuals */
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-            --radius-md: 6px;
-            --radius-lg: 8px;
-            --transition: 0.15s ease-in-out;
+            --shadow-sm: none;
+            --shadow-md: none;
+            --radius-md: 0px;
+            --radius-lg: 0px;
+            --transition: 0s;
         }
 
         /* Dark Theme */
@@ -261,8 +261,8 @@
            Inputs & Cards
         ---------------------------------------------------- */
         .card {
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            border: 2px groove #E0E0E0;
+            border-radius: 0;
             padding: 12px;
             background: var(--surface-color);
         }
@@ -307,26 +307,25 @@
         input,
         select,
         textarea {
-            padding: 6px 8px;
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-md);
+            padding: 4px 6px;
+            border: 1px solid #A0A0A0;
+            border-top: 1px solid #696969;
+            border-left: 1px solid #696969;
+            border-radius: 0;
             font-family: var(--font-family);
             font-size: 13px;
-            background: var(--bg-color);
+            background: #FFFFFF;
             color: var(--text-primary);
-            transition: var(--transition);
         }
 
         input:focus,
         textarea:focus,
         select:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px var(--primary-light);
+            outline: 1px solid #000000;
         }
 
         textarea {
-            resize: none;
+            resize: vertical;
             min-height: 80px;
         }
 
@@ -334,53 +333,82 @@
            Buttons
         ---------------------------------------------------- */
         .btn {
-            padding: 8px 16px;
-            border-radius: var(--radius-md);
-            font-weight: 600;
+            padding: 6px 16px;
+            border-radius: 0;
+            font-weight: 400;
             font-size: 13px;
-            cursor: pointer;
-            border: 1px solid transparent;
-            transition: var(--transition);
+            cursor: default;
+            border: 1px solid #696969;
+            border-bottom: 1px solid #333333;
+            border-right: 1px solid #333333;
+            background: #E1E1E1;
+            color: #000000;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 6px;
         }
 
+        .btn:hover {
+            background: #E8E8E8;
+        }
+
+        .btn:active {
+            border: 1px solid #333333;
+            border-bottom: 1px solid #696969;
+            border-right: 1px solid #696969;
+            background: #D1D1D1;
+        }
+
         .btn-primary {
-            background: var(--primary-color);
-            color: white;
+            border: 1px solid #000000;
         }
 
         .btn-primary:hover {
-            background: var(--primary-hover);
+            background: #E8E8E8;
         }
 
         .btn-secondary {
-            background: var(--bg-color);
-            border-color: var(--border-strong);
-            color: var(--text-primary);
+            /* same as btn */
         }
 
         .btn-secondary:hover {
-            background: var(--border-color);
+            background: #E8E8E8;
         }
 
         .btn-success {
-            background: var(--success-color);
-            color: white;
-            font-size: 15px;
-            padding: 12px;
+            background: #E1E1E1;
+            color: #008000;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px;
             width: 100%;
         }
 
         .btn-success:hover {
-            background: #15803d;
+            background: #D1D1D1;
+        }
+
+        .btn-warning {
+            background: #E1E1E1;
+            color: #CC6600;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px;
+            width: 100%;
+        }
+
+        .btn-warning:hover {
+            background: #D1D1D1;
         }
 
         .btn-danger {
             color: var(--danger-color);
-            background: transparent;
+            background: #E1E1E1;
+            border: 1px solid #696969;
+            border-bottom: 1px solid #333333;
+            border-right: 1px solid #333333;
+            padding: 4px 8px;
         }
 
         /* ----------------------------------------------------
@@ -407,10 +435,10 @@
 
         .plate-grid {
             display: grid;
-            grid-template-columns: 16px repeat(11, 1fr);
+            grid-template-columns: 16px repeat(6, 22px);
             gap: 4px;
+            justify-content: center;
             width: 100%;
-            max-width: 300px;
             margin: 0 auto;
         }
 
@@ -474,7 +502,6 @@
         .vial.highlighted {
             border-color: var(--highlight-border);
             background: var(--highlight-bg);
-            box-shadow: 0 0 0 2px var(--highlight-border);
         }
 
         .vial.vial-completed {
@@ -488,10 +515,11 @@
             flex-wrap: wrap;
             justify-content: center;
             gap: 8px;
-            margin-top: 12px;
-            padding-top: 10px;
+            margin-top: 4px;
+            padding-top: 6px;
             border-top: 1px solid var(--border-color);
             width: 100%;
+            flex-shrink: 0;
         }
 
         .legend-item {
@@ -503,10 +531,10 @@
         }
 
         .legend-dot {
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            border: 1.5px solid;
+            border: 1px solid;
         }
 
         /* ----------------------------------------------------
@@ -580,6 +608,7 @@
             flex-direction: column;
             gap: 6px;
             flex: 1;
+            min-height: 150px;
             overflow-y: auto;
             border: 1px solid var(--border-color);
             border-radius: var(--radius-md);
@@ -1199,25 +1228,26 @@
         function createBoard() {
             const grid = document.getElementById('plate-grid');
             grid.innerHTML = '';
-            
-            grid.appendChild(document.createElement('div'));
-            for (let c = 1; c <= COLS; c++) {
-                const header = document.createElement('div');
-                header.className = 'header-label'; header.innerText = c;
-                grid.appendChild(header);
-            }
-            
-            ROWS.forEach(row => {
+
+            for (let c = COLS; c >= 1; c--) {
                 const rowHeader = document.createElement('div');
-                rowHeader.className = 'header-label'; rowHeader.innerText = row;
+                rowHeader.className = 'header-label'; rowHeader.innerText = c;
                 grid.appendChild(rowHeader);
-                for (let c = 1; c <= COLS; c++) {
+
+                ROWS.forEach(row => {
                     const vialId = `${row}${c}`;
                     const vial = document.createElement('div');
                     vial.className = 'vial'; vial.id = `vial-${vialId}`;
-                    vial.innerHTML = `<span>${c}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
+                    vial.innerHTML = `<span>${row}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
                     grid.appendChild(vial);
-                }
+                });
+            }
+
+            grid.appendChild(document.createElement('div'));
+            ROWS.forEach(row => {
+                const header = document.createElement('div');
+                header.className = 'header-label'; header.innerText = row;
+                grid.appendChild(header);
             });
         }
 
