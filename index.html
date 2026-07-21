@@ -3,8 +3,8 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agilent HPLC Sequence Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>HPLC Run Monitor</title>
 
   <!-- PWA Manifest & Service Worker -->
   <link rel="manifest" href="manifest.json">
@@ -23,6 +23,9 @@
   <!-- QR Code Scanning Library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
+  <!-- Socket.io for Real-Time Sync -->
+  <script src="/socket.io/socket.io.js"></script>
+
   <style>
     /* ============================================================
            ENTERPRISE LABORATORY DASHBOARD
@@ -34,144 +37,81 @@
 
     :root {
       /* Typography */
-      --font-family: Arial, sans-serif;
-      --font-size-base: 13px;
+      --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-size-base: 14px;
       --font-size-sm: 12px;
       --font-size-xs: 11px;
 
-      --bg-color: #0f172a;
-      --surface-color: #1e293b;
-      --surface-hover: #26334a;
+      /* Teal & Yellow Flat Theme (From Image) */
+      --bg-color: #f0f4f5;
+      --surface-color: #ffffff;
+      --surface-hover: #f9fafa;
+      --surface-alt: #f0f4f5;
 
-      --primary-color: #3b82f6;
-      --primary-light: #1e3a8a;
+      --primary-color: #0c9ba8;
+      --primary-hover: #0a828d;
+      --primary-light: rgba(12, 155, 168, 0.1);
 
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --border-color: #334155;
+      --text-primary: #333333;
+      --text-secondary: #777777;
+      --text-muted: #aaaaaa;
 
-      --empty-bg: #1e293b;
-      --empty-border: #475569;
+      --border-color: #e0e6e8;
+      --border-strong: #ced4d6;
 
-      --fixed-bg: #334155;
-      --fixed-border: #64748b;
+      --success-color: #ffc107; /* Map success/main actions to Yellow */
+      --success-bg: rgba(255, 193, 7, 0.1);
+      --warning-color: #ffb300;
+      --warning-bg: rgba(255, 179, 0, 0.1);
+      --danger-color: #f44336;
+      --danger-bg: rgba(244, 67, 54, 0.1);
 
-      --std-bg: #451a03;
-      --std-border: #d97706;
+      --input-bg: #ffffff;
+      --btn-bg: #ffc107;
+      --btn-text: #ffffff;
+      --btn-border: transparent;
 
-      --spike-bg: #3b0764;
-      --spike-border: #9333ea;
-
-      --occupied-bg: #052e16;
-      --occupied-border: #16a34a;
-
-      --input-bg: #1e293b;
-      --btn-bg: #334155;
-      --btn-text: #f8fafc;
-      --btn-border: #64748b;
-      --btn-border-dark: #0f172a;
-    }
-
-    /* Light Theme */
-    [data-theme="light"] {
-      /* Colors: Classic WinForms Scheme */
-      --bg-color: #F0F0F0;
-      --surface-color: #F0F0F0;
-      --surface-hover: #E8E8E8;
-
-      --primary-color: #000000;
-      --primary-hover: #333333;
-      --primary-light: #D9D9D9;
-
-      --text-primary: #000000;
-      --text-secondary: #333333;
-      --text-muted: #666666;
-
-      --border-color: #A0A0A0;
-      --border-strong: #696969;
-
-      /* Semantic Colors */
-      --success-color: #008000;
-      --success-bg: #E6F2E6;
-      --warning-color: #FFA500;
-      --warning-bg: #FFF6E6;
-      --danger-color: #FF0000;
-      --danger-bg: #FFE6E6;
-
-      /* Plate Colors */
-      --empty-bg: #FFFFFF;
-      --empty-border: #A0A0A0;
-
-      --fixed-bg: #E0E0E0;
-      --fixed-border: #808080;
-      --fixed-text: #000000;
-
-      --std-bg: #FFFFE0;
-      --std-border: #BDB76B;
-      --std-text: #000000;
-
-      --spike-bg: #E6E6FA;
-      --spike-border: #9370DB;
-      --spike-text: #000000;
-
-      --occupied-bg: #E0FFE0;
-      --occupied-border: #008000;
-      --occupied-text: #000000;
-
-      --highlight-border: #0000FF;
-      --highlight-bg: #E6E6FF;
-
-      /* Visuals */
       --shadow-sm: none;
       --shadow-md: none;
-      --radius-md: 0px;
-      --radius-lg: 0px;
-      --transition: 0s;
+      --shadow-lg: none;
 
-      --input-bg: #FFFFFF;
-      --btn-bg: #E1E1E1;
-      --btn-text: #000000;
-      --btn-border: #696969;
-      --btn-border-dark: #333333;
+      --radius-sm: 4px;
+      --radius-md: 4px;
+      --radius-lg: 4px;
+      --radius-full: 9999px;
+
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
+    /* Dark Theme */
+    [data-theme="dark"] {
+      --bg-color: #121212;
+      --surface-color: #1e1e1e;
+      --surface-hover: #2a2a2a;
+      --surface-alt: #181818;
 
-    /* Responsive Mobile Layout */
-    @media (max-width: 1200px) {
-      .dashboard {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
+      --primary-color: #26c6da;
+      --primary-hover: #00acc1;
+      --primary-light: rgba(38, 198, 218, 0.1);
 
-    @media (max-width: 768px) {
-      .dashboard {
-        grid-template-columns: 1fr;
-      }
+      --text-primary: #ffffff;
+      --text-secondary: #aaaaaa;
+      --text-muted: #777777;
 
-      .col {
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
-      }
+      --border-color: #333333;
+      --border-strong: #444444;
 
-      .col:last-child {
-        border-bottom: none;
-      }
+      --success-color: #ffc107;
+      --success-bg: rgba(255, 193, 7, 0.15);
+      --warning-color: #ffb300;
+      --warning-bg: rgba(255, 179, 0, 0.15);
+      --danger-color: #ef5350;
+      --danger-bg: rgba(239, 83, 80, 0.15);
 
-      .plate-grid {
-        margin: 0 auto;
-      }
-
-      .global-header {
-        flex-direction: column;
-        gap: 12px;
-        height: auto;
-        padding: 16px;
-      }
-
-      .header-right {
-        width: 100%;
-        justify-content: center;
-      }
+      --input-bg: #121212;
+      --btn-bg: #ffc107;
+      --btn-text: #121212;
+      --btn-border: transparent;
     }
 
     /* Basic Resets */
@@ -179,21 +119,22 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* Dark Scrollbar */
     ::-webkit-scrollbar {
-      width: 10px;
-      height: 10px;
+      width: 6px;
+      height: 6px;
     }
 
     ::-webkit-scrollbar-track {
-      background: var(--surface-color);
+      background: transparent;
     }
 
     ::-webkit-scrollbar-thumb {
       background: var(--border-color);
-      border-radius: 5px;
+      border-radius: var(--radius-full);
     }
 
     ::-webkit-scrollbar-thumb:hover {
@@ -208,9 +149,10 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
-      /* No page scroll */
+      overflow-y: auto;
+      overflow-x: hidden;
       transition: background-color var(--transition);
+      background-image: none;
     }
 
     /* ----------------------------------------------------
@@ -219,145 +161,111 @@
     .global-header {
       background-color: var(--primary-color);
       color: #ffffff;
-      height: 48px;
+      height: 56px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 20px;
-      box-shadow: var(--shadow-sm);
-      flex-shrink: 0;
+      position: sticky;
+      top: 0;
       z-index: 100;
     }
 
-    .header-left,
-    .header-center,
+    [data-theme="light"] .global-header {
+      background-color: var(--primary-color);
+      color: #ffffff;
+    }
+
+    .header-left h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      text-transform: uppercase;
+    }
+
     .header-right {
       display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .header-left {
-      flex: 1;
-    }
-
-    .header-center {
-      flex: 2;
-      justify-content: center;
-    }
-
-    .header-right {
-      flex: 1;
-      justify-content: flex-end;
-    }
-
-    .global-header h1 {
-      font-size: 16px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    .header-center .method-label {
-      font-size: 13px;
-      opacity: 0.9;
-    }
-
-    .header-center select,
-    .header-center input {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      padding: 4px 10px;
-      border-radius: var(--radius-md);
-      font-size: 13px;
-    }
-
-    .header-center select option {
-      color: #000;
+      gap: 8px;
     }
 
     .btn-header {
-      background: transparent;
-      border: none;
-      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: inherit;
       padding: 6px 12px;
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-full);
       cursor: pointer;
       transition: var(--transition);
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    [data-theme="light"] .btn-header {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
     }
 
     .btn-header:hover {
-      background: rgba(255, 255, 255, 0.15);
+      background: var(--surface-hover);
+    }
+
+    [data-theme="light"] .btn-header:hover {
+      background: var(--surface-hover);
     }
 
     /* ----------------------------------------------------
-           4-Column Layout
+           Unified Layout
         ---------------------------------------------------- */
     .dashboard {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      padding: 16px;
-      height: calc(100vh - 48px);
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
     }
 
     .col {
-      background: var(--surface-color);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
       display: flex;
       flex-direction: column;
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-      /* contain inner scrolls */
+      gap: 20px;
     }
 
     .col-header {
-      padding: 0 16px;
-      height: 44px;
-      border-bottom: 1px solid var(--border-color);
-      background: var(--surface-hover);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .col-header h2 {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--primary-color);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      display: none;
+      /* Hide old column headers for unified look */
     }
 
     .col-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 20px;
     }
 
     /* ----------------------------------------------------
            Inputs & Cards
         ---------------------------------------------------- */
     .card {
-      border: 2px groove #E0E0E0;
-      border-radius: 0;
-      padding: 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
       background: var(--surface-color);
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-lg);
     }
 
     .card-title {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      margin-bottom: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-color);
+      margin-bottom: 12px;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .input-group {
@@ -384,7 +292,7 @@
     }
 
     label {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       color: var(--text-secondary);
     }
@@ -392,46 +300,48 @@
     input,
     select,
     textarea {
-      padding: 4px 6px;
-      border: 1px solid #A0A0A0;
-      border-top: 1px solid #696969;
-      border-left: 1px solid #696969;
-      border-radius: 0;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
       font-family: var(--font-family);
       font-size: 13px;
       background: var(--input-bg);
       color: var(--text-primary);
+      transition: var(--transition);
     }
 
     input:focus,
     textarea:focus,
     select:focus {
-      outline: 1px solid #000000;
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px var(--primary-light);
     }
 
     textarea {
       resize: vertical;
-      min-height: 80px;
+      min-height: 100px;
+      border-radius: var(--radius-md);
     }
 
     /* ----------------------------------------------------
            Buttons
         ---------------------------------------------------- */
     .btn {
-      padding: 6px 16px;
-      border-radius: 0;
-      font-weight: 400;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
       font-size: 13px;
-      cursor: default;
-      border: 1px solid var(--btn-border);
-      border-bottom: 1px solid var(--btn-border-dark);
-      border-right: 1px solid var(--btn-border-dark);
+      cursor: pointer;
+      border: none;
       background: var(--btn-bg);
       color: var(--btn-text);
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
+      gap: 8px;
+      transition: var(--transition);
+      text-transform: uppercase;
     }
 
     .btn:hover {
@@ -439,18 +349,17 @@
     }
 
     .btn:active {
-      border: 1px solid var(--btn-border-dark);
-      border-bottom: 1px solid var(--btn-border);
-      border-right: 1px solid var(--btn-border);
-      background: var(--surface-hover);
+      background: var(--surface-alt);
     }
 
     .btn-primary {
-      border: 1px solid #000000;
+      background: var(--primary-color);
+      border-color: var(--primary-hover);
+      color: #ffffff;
     }
 
     .btn-primary:hover {
-      background: #E8E8E8;
+      background: var(--primary-hover);
     }
 
     .btn-secondary {
@@ -458,37 +367,38 @@
     }
 
     #start-run-btn {
-      font-size: 14px;
-      font-weight: bold;
-      padding: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 12px;
       width: 100%;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
     }
 
     .btn-success {
-      background: #E1E1E1;
-      color: #008000;
+      background: var(--success-color);
+      color: #ffffff;
     }
 
     .btn-success:hover {
-      background: #D1D1D1;
+      background: #e6a800; /* Darker yellow */
     }
 
     .btn-warning {
-      background: #E1E1E1;
-      color: #CC6600;
+      background: var(--warning-color);
+      border-color: #d97706;
+      color: #ffffff;
     }
 
     .btn-warning:hover {
-      background: #D1D1D1;
+      background: #d97706;
     }
 
     .btn-danger {
-      color: var(--danger-color);
-      background: #E1E1E1;
-      border: 1px solid #696969;
-      border-bottom: 1px solid #333333;
-      border-right: 1px solid #333333;
-      padding: 4px 8px;
+      background: var(--danger-color);
+      border-color: #dc2626;
+      color: #ffffff;
     }
 
     /* ----------------------------------------------------
@@ -623,115 +533,151 @@
     .stats-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
+      gap: 12px;
     }
 
     .stat-box {
-      background: var(--bg-color);
-      padding: 10px;
+      background: var(--surface-alt);
+      padding: 12px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
+      transition: var(--transition);
+    }
+
+    .stat-box:hover {
+      border-color: var(--primary-color);
+      background: var(--surface-hover);
     }
 
     .stat-label {
-      font-size: 10px;
-      font-weight: 600;
+      font-size: 11px;
+      font-weight: 700;
       color: var(--text-secondary);
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .stat-val {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--primary-color);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text-primary);
     }
 
     /* ----------------------------------------------------
-           Column 3: Run Monitor & Queue
+           Run Monitor & Queue
         ---------------------------------------------------- */
     .progress-box {
-      background: var(--surface-color);
-      border: 1px solid var(--border-strong);
+      background: var(--surface-alt);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 16px;
+      padding: 20px;
+      margin-bottom: 16px;
     }
 
     .progress-track {
-      height: 8px;
-      background: var(--bg-color);
-      border-radius: 4px;
+      height: 12px;
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: var(--radius-full);
       overflow: hidden;
-      margin: 12px 0;
-      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+      margin: 16px 0;
+    }
+
+    [data-theme="dark"] .progress-track {
+      background: rgba(255, 255, 255, 0.1);
     }
 
     .progress-fill {
       height: 100%;
-      background: var(--success-color);
+      background: var(--warning-color); /* Yellow flat progress */
       width: 0%;
-      transition: width 0.3s ease;
+      transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: var(--radius-full);
     }
 
     .monitor-stats {
       display: flex;
       justify-content: space-between;
-      font-size: 12px;
-      font-weight: 500;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
     }
 
     /* Run Queue List */
     .run-queue {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
       flex: 1;
-      min-height: 150px;
+      min-height: 200px;
+      max-height: 400px;
       overflow-y: auto;
-      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      background: var(--bg-color);
       padding: 4px;
     }
 
     .queue-item {
-      background: var(--surface-color);
+      background: var(--surface-alt);
       border: 1px solid var(--border-color);
-      padding: 8px 12px;
+      padding: 12px 16px;
       border-radius: var(--radius-md);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 12px;
+      font-size: 13px;
       box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .queue-item:hover {
+      transform: translateX(4px);
+      border-color: var(--primary-color);
+      background: var(--surface-hover);
     }
 
     .badge {
-      padding: 2px 8px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      font-size: 11px;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .badge.pending {
-      background: var(--bg-color);
+      background: var(--surface-hover);
       color: var(--text-secondary);
-      border: 1px solid var(--border-strong);
+      border: 1px solid var(--border-color);
     }
 
     .badge.running {
-      background: var(--highlight-bg);
-      color: #b45309;
-      border: 1px solid #f59e0b;
+      background: var(--warning-bg);
+      color: var(--warning-color);
+      border: 1px solid var(--warning-color);
+      animation: pulse 2s infinite;
     }
 
     .badge.completed {
       background: var(--success-bg);
       color: var(--success-color);
-      border: 1px solid #86efac;
+      border: 1px solid var(--success-color);
+    }
+
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.7;
+      }
+
+      100% {
+        opacity: 1;
+      }
     }
 
     /* ----------------------------------------------------
@@ -842,31 +788,15 @@
   <!-- GLOBAL ENTERPRISE HEADER -->
   <div class="global-header">
     <div class="header-left">
-      <h1 title="HPLC Visualizer">HPLC Visualizer</h1>
+      <h1 title="HPLC Run Monitor">HPLC Run Monitor</h1>
     </div>
     <div class="header-center">
     </div>
-    <div class="header-right">
-      <button class="btn-header" onclick="toggleCondTimer()">Timer</button>
-      <button class="btn-header" onclick="openModal('instructions-modal')">Help</button>
-      <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
-    </div>
+    <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
+  </div>
   </div>
 
-  <!-- Instructions Modal -->
-  <div id="instructions-modal" class="modal-overlay">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 16px; color: var(--primary-color);">How to use this app</h3>
-      <ul style="padding-left: 20px; line-height: 1.8; margin-bottom: 24px;">
-        <li><strong>Sequence Vials:</strong> Paste your list. Use <code>* 3</code> to create replicates.</li>
-        <li><strong>Fixed Vials:</strong> Assign washes/blanks (e.g., <code>Methanol=P1:A11</code>).</li>
-        <li><strong>Dashboard:</strong> All panels update in real-time without scrolling the main window.</li>
-      </ul>
-      <div style="display:flex; justify-content:flex-end;">
-        <button class="btn btn-primary" onclick="closeModal('instructions-modal')">Got it</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Finish Alert Modal -->
   <div id="finish-modal" class="modal-overlay">
@@ -899,23 +829,7 @@
       </div>
       <div class="col-body">
 
-        <div id="cond-timer-box" class="card"
-          style="display:none; position:fixed; top:60px; right:20px; z-index:1000; width:250px; background:var(--surface-color); box-shadow:0 4px 12px rgba(0,0,0,0.2); border-color:var(--primary-color);">
-          <div id="cond-timer-header"
-            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:move; user-select:none;">
-            <span class="card-title" style="margin:0; color:var(--primary-color);">Timer</span>
-            <button class="btn-header" style="color:var(--text-secondary);" onclick="toggleCondTimer()">✕</button>
-          </div>
-          <div id="cond-display"
-            style="font-size:24px; text-align:center; font-family:monospace; font-weight:700; margin:8px 0; color:var(--primary-color);">
-            00:00</div>
-          <div style="display:flex; gap:8px;">
-            <input type="number" id="cond-input" value="15" style="width:60px;">
-            <button id="cond-start-btn" class="btn btn-primary" onclick="startCondTimer()"
-              style="flex:1;">Start</button>
-            <button class="btn btn-secondary" onclick="resetCondTimer()">Reset</button>
-          </div>
-        </div>
+
 
         <div class="card">
           <div class="card-title">Run Parameters</div>
@@ -928,10 +842,7 @@
               <label>Run (m)</label>
               <input type="number" id="runtime-input" value="15.0" step="0.1" oninput="updateVisualization()">
             </div>
-            <div class="input-group">
-              <label>Delay (m)</label>
-              <input type="number" id="delay-input" value="1.0" step="0.1" oninput="updateVisualization()">
-            </div>
+
           </div>
           <div class="input-row" style="margin-bottom:0;">
             <div class="input-group">
@@ -945,34 +856,14 @@
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-title">Solvents</div>
-          <div class="input-row" style="margin-bottom:0;">
-            <div class="input-group">
-              <label>Solvent A (%)</label>
-              <input type="number" id="sol-a" value="100" min="0" oninput="updateVisualization()">
-            </div>
-            <div class="input-group">
-              <label>Bottle A (mL)</label>
-              <input type="number" id="bot-a" value="1000" min="0" oninput="updateVisualization()">
-            </div>
-          </div>
-          <div class="input-row" style="margin-bottom:0; margin-top:8px;">
-            <div class="input-group">
-              <label>Solvent B (%)</label>
-              <input type="number" id="sol-b" value="0" min="0" oninput="updateVisualization()">
-            </div>
-            <div class="input-group">
-              <label>Bottle B (mL)</label>
-              <input type="number" id="bot-b" value="1000" min="0" oninput="updateVisualization()">
-            </div>
-          </div>
-        </div>
 
         <div class="card">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
             <div class="card-title" style="margin:0;">Sequence List</div>
             <div style="display:flex; gap:4px;">
+              <button class="btn-secondary"
+                style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--danger-color); color:var(--danger-color); cursor:pointer;"
+                onclick="document.getElementById('sequence-input').value = ''; updateVisualization();">Clear</button>
               <button class="btn-secondary"
                 style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
                 onclick="startScanner()">Scan QR</button>
@@ -989,79 +880,8 @@
       </div>
     </div>
 
-    <!-- COLUMN 1: PLATE LAYOUT -->
-    <div class="col" id="col-plate">
-      <div class="col-header">
-        <h2>Plate Layout</h2>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span class="method-label" style="font-size:12px;">Plate:</span>
-          <select id="plate-select" onchange="updateVisualization()" style="padding:2px 4px;">
-            <option value="1">Plate 1 (1-66)</option>
-            <option value="2">Plate 2 (67-132)</option>
-          </select>
-        </div>
-      </div>
-      <div class="col-body">
-        <div class="plate-container">
-          <div id="plate-grid" class="plate-grid"></div>
-        </div>
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-dot" style="background:var(--empty-bg); border-color:var(--empty-border)">
-            </div> Empty
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background:var(--fixed-bg); border-color:var(--fixed-border)">
-            </div> Fixed
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background:var(--std-bg); border-color:var(--std-border)"></div>
-            Std
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background:var(--spike-bg); border-color:var(--spike-border)">
-            </div> Spike
-          </div>
-          <div class="legend-item">
-            <div class="legend-dot" style="background:var(--occupied-bg); border-color:var(--occupied-border)"></div>
-            Sample
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- COLUMN 4: CHEMSTATION EXPORT -->
-    <div class="col">
-      <div class="col-header">
-        <h2>Export</h2>
-      </div>
-      <div class="col-body" style="padding-bottom:0;">
-
-        <div class="export-actions">
-          <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
-          <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
-          <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
-        </div>
-
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Vial</th>
-                <th>Sample Name</th>
-              </tr>
-            </thead>
-            <tbody id="chemstation-body">
-              <!-- Rows injected via JS -->
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
-
+    <!-- COLUMN 1: PLATE LAYOUT (Removed) -->
+    <!-- COLUMN 4: CHEMSTATION EXPORT (Removed) -->
 
     <!-- COLUMN 3: RUN MONITOR -->
     <div class="col">
@@ -1086,27 +906,6 @@
               <span class="stat-label">Total Volume</span>
               <span class="stat-val" id="prep-vol">0.0 mL</span>
             </div>
-            <div class="stat-box">
-              <span class="stat-label">Req A / B</span>
-              <span class="stat-val" style="font-size:12px;"><span id="p-vol-a">0</span> / <span
-                  id="p-vol-b">0</span></span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">Rem A / B</span>
-              <span class="stat-val" style="font-size:12px;"><span id="p-rem-a">0</span> / <span
-                  id="p-rem-b">0</span></span>
-            </div>
-          </div>
-
-          <div
-            style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-size:11px; font-weight:600;">Custom Calc:</span>
-            <input type="number" id="calc-samples-input" min="0" placeholder="# Samples"
-              oninput="calculateCustomSamples()" style="width:70px; height:24px; font-size:11px; padding:2px 6px;">
-          </div>
-          <div id="calc-result"
-            style="display:none; font-size:11px; font-weight:600; margin-top:6px; color:var(--primary-color); text-align:right;">
-            Needs A: <span id="calc-req-a">0</span> | B: <span id="calc-req-b">0</span>
           </div>
         </div>
 
@@ -1145,93 +944,56 @@
     let runFinishedAlerted = false;
     let html5QrcodeScanner;
 
-    // --- Tab Switching Logic ---
-    function switchTab(tabId) {
-      // Update nav buttons
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('tab-btn-' + tabId).classList.add('active');
+    // Simulator State
+    const DELAY_MINS = 10 / 60; // Constant 10 seconds delay
+    let currentSampleStartTime = 0;
 
-      // Update tab content visibility
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-      document.getElementById('tab-' + tabId).classList.add('active');
+    // Socket.io initialization
+    const socket = typeof io !== 'undefined' ? io() : null;
 
-      // Re-render things that might be hidden
-      if (tabId === 1) {
-        // Ensure grid renders correctly after display block
-        const cachedMap = window._lastVialMap || {};
-        const cachedQuery = window._lastSearchQuery || "";
-        updateGridHighlights(cachedMap, cachedQuery);
-      }
-    }
+    if (socket) {
+      socket.on('sync_state', (state) => {
+        let needsUpdate = false;
 
-
-    // --- Conditioning Timer ---
-    let condInterval = null;
-    let condRemaining = 0;
-    let condIsRunning = false;
-
-    function toggleCondTimer() {
-      const box = document.getElementById('cond-timer-box');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-
-    function startCondTimer() {
-      const btn = document.getElementById('cond-start-btn');
-      if (condIsRunning) {
-        clearInterval(condInterval);
-        condIsRunning = false;
-        btn.innerText = 'START';
-        btn.classList.replace('btn-warning', 'btn-primary');
-      } else {
-        if (condRemaining <= 0) {
-          const mins = parseFloat(document.getElementById('cond-input').value) || 0;
-          condRemaining = Math.floor(mins * 60);
+        if (state.plate !== undefined) { document.getElementById('plate-select').value = state.plate; needsUpdate = true; }
+        if (state.injvol !== undefined) { document.getElementById('injvol-input').value = state.injvol; needsUpdate = true; }
+        if (state.runtime !== undefined) { document.getElementById('runtime-input').value = state.runtime; needsUpdate = true; }
+        if (state.flowrate !== undefined) { document.getElementById('flowrate-input').value = state.flowrate; needsUpdate = true; }
+        if (state.search !== undefined) {
+          const sEl = document.getElementById('search-input');
+          if (sEl && sEl.value !== state.search) { sEl.value = state.search; needsUpdate = true; }
         }
-        if (condRemaining > 0) {
-          condIsRunning = true;
-          btn.innerText = 'PAUSE';
-          btn.classList.replace('btn-primary', 'btn-warning');
-          condInterval = setInterval(tickCondTimer, 1000);
-          tickCondTimer();
+        if (state.fixed !== undefined && document.getElementById('fixed-input').value !== state.fixed) {
+          document.getElementById('fixed-input').value = state.fixed; needsUpdate = true;
         }
-      }
-    }
+        if (state.sequence !== undefined && document.getElementById('sequence-input').value !== state.sequence) {
+          document.getElementById('sequence-input').value = state.sequence; needsUpdate = true;
+        }
+        if (state.completed) {
+          completedIndices = new Set(state.completed);
+          needsUpdate = true;
+        }
+        if (state.running !== undefined && state.running !== isRunning) {
+          isRunning = state.running;
+          needsUpdate = true;
+          const btn = document.getElementById('start-run-btn');
+          if (isRunning) {
+            btn.innerHTML = 'Pause Run';
+            btn.classList.replace('btn-success', 'btn-warning');
+          } else {
+            btn.innerHTML = 'Start Run';
+            btn.classList.replace('btn-warning', 'btn-success');
+          }
+        }
+        if (state.currentSampleStartTime !== undefined) {
+          currentSampleStartTime = state.currentSampleStartTime;
+          needsUpdate = true;
+        }
 
-    function tickCondTimer() {
-      if (condRemaining <= 0) {
-        clearInterval(condInterval);
-        condIsRunning = false;
-        const btn = document.getElementById('cond-start-btn');
-        btn.innerText = 'START';
-        btn.classList.replace('btn-warning', 'btn-primary');
-
-        // Audio Beep
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-        oscillator.connect(audioCtx.destination);
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.5);
-
-        alert("Timer Finished!");
-        return;
-      }
-      condRemaining--;
-      const m = Math.floor(condRemaining / 60).toString().padStart(2, '0');
-      const s = (condRemaining % 60).toString().padStart(2, '0');
-      document.getElementById('cond-display').innerText = `${m}:${s}`;
-    }
-
-    function resetCondTimer() {
-      clearInterval(condInterval);
-      condIsRunning = false;
-      condRemaining = 0;
-      const btn = document.getElementById('cond-start-btn');
-      btn.innerText = 'START';
-      btn.classList.remove('btn-warning');
-      btn.classList.add('btn-primary');
-      document.getElementById('cond-display').innerText = '00:00';
+        if (needsUpdate) {
+          updateVisualization(true);
+        }
+      });
     }
 
     // --- Modal & Theme Logic ---
@@ -1240,86 +1002,57 @@
 
     function toggleDarkMode() {
       const body = document.body;
-      if (body.getAttribute('data-theme') !== 'light') {
-        body.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
+      if (body.getAttribute('data-theme') !== 'dark') {
+        body.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
       } else {
         body.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'dark');
+        localStorage.setItem('theme', 'light');
       }
     }
 
     // --- State Management ---
-    function saveToCache() {
+    function saveToCache(skipEmit = false) {
       const cacheData = {
-        plate: document.getElementById('plate-select').value,
+        plate: document.getElementById('plate-select') ? document.getElementById('plate-select').value : '1',
         injvol: document.getElementById('injvol-input').value,
         runtime: document.getElementById('runtime-input').value,
-        delay: document.getElementById('delay-input').value,
         flowrate: document.getElementById('flowrate-input').value,
-        sola: document.getElementById('sol-a').value,
-        solb: document.getElementById('sol-b').value,
-        solc: document.getElementById('sol-c').value,
-        sold: document.getElementById('sol-d').value,
-        search: document.getElementById('search-input').value,
+        search: document.getElementById('search-input') ? document.getElementById('search-input').value : '',
         fixed: document.getElementById('fixed-input').value,
         sequence: document.getElementById('sequence-input').value,
         completed: Array.from(completedIndices),
-        running: isRunning
+        running: isRunning,
+        currentSampleStartTime: currentSampleStartTime
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+
+      if (!skipEmit && socket) {
+        socket.emit('update_state', cacheData);
+      }
     }
 
     function loadFromCache() {
-      if (localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+      if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
       else document.body.removeAttribute('data-theme');
       const cachedStr = localStorage.getItem(CACHE_KEY);
       if (cachedStr) {
         try {
           const c = JSON.parse(cachedStr);
-          if (c.plate) document.getElementById('plate-select').value = c.plate;
+          if (c.plate && document.getElementById('plate-select')) document.getElementById('plate-select').value = c.plate;
           if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
           if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
-          if (c.delay !== undefined) document.getElementById('delay-input').value = c.delay;
           if (c.flowrate !== undefined) document.getElementById('flowrate-input').value = c.flowrate;
-          if (c.sola !== undefined) document.getElementById('sol-a').value = c.sola;
-          if (c.solb !== undefined) document.getElementById('sol-b').value = c.solb;
-          if (c.solc !== undefined) document.getElementById('sol-c').value = c.solc;
-          if (c.sold !== undefined) document.getElementById('sol-d').value = c.sold;
           if (c.search !== undefined) document.getElementById('search-input').value = c.search;
           if (c.fixed !== undefined) document.getElementById('fixed-input').value = c.fixed;
           if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
           if (c.completed) completedIndices = new Set(c.completed);
+          if (c.currentSampleStartTime) currentSampleStartTime = c.currentSampleStartTime;
           if (c.running === true) { isRunning = false; toggleRunState(); }
         } catch (e) { console.error('Cache error', e); }
       }
     }
 
-    function createBoard() {
-      const grid = document.getElementById('plate-grid');
-      grid.innerHTML = '';
-
-      for (let c = COLS; c >= 1; c--) {
-        const rowHeader = document.createElement('div');
-        rowHeader.className = 'header-label'; rowHeader.innerText = c;
-        grid.appendChild(rowHeader);
-
-        ROWS.forEach(row => {
-          const vialId = `${row}${c}`;
-          const vial = document.createElement('div');
-          vial.className = 'vial'; vial.id = `vial-${vialId}`;
-          vial.innerHTML = `<span>${row}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
-          grid.appendChild(vial);
-        });
-      }
-
-      grid.appendChild(document.createElement('div'));
-      ROWS.forEach(row => {
-        const header = document.createElement('div');
-        header.className = 'header-label'; header.innerText = row;
-        grid.appendChild(header);
-      });
-    }
 
     // --- Run Control ---
     function toggleRunState() {
@@ -1329,6 +1062,8 @@
         btn.innerHTML = 'Pause Run';
         btn.classList.replace('btn-success', 'btn-warning');
         runFinishedAlerted = false;
+        // Start tracking time for the current sample
+        currentSampleStartTime = Date.now();
       } else {
         btn.innerHTML = 'Start Run';
         btn.classList.replace('btn-warning', 'btn-success');
@@ -1343,33 +1078,8 @@
       saveToCache();
     }
 
-    // --- Draggable Timer Logic ---
-    const timerBox = document.getElementById('cond-timer-box');
-    const timerHeader = document.getElementById('cond-timer-header');
 
-    let isDragging = false;
-    let dragOffsetX = 0;
-    let dragOffsetY = 0;
-
-    timerHeader.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      const rect = timerBox.getBoundingClientRect();
-      dragOffsetX = e.clientX - rect.left;
-      dragOffsetY = e.clientY - rect.top;
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      timerBox.style.left = (e.clientX - dragOffsetX) + 'px';
-      timerBox.style.top = (e.clientY - dragOffsetY) + 'px';
-      timerBox.style.right = 'auto'; // Release right anchor
-    });
-
-    document.addEventListener('mouseup', () => {
-      isDragging = false;
-    });
-
-    createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
+    loadFromCache(); startLiveTimer(); updateVisualization();
 
     function resetProgress() {
       if (confirm("Reset all checkmarks?")) {
@@ -1401,8 +1111,9 @@
       return fixedMap;
     }
 
-    function updateVisualization() {
-      const selectedPlate = parseInt(document.getElementById('plate-select').value);
+    function updateVisualization(skipEmit = false) {
+      const plateSelect = document.getElementById('plate-select');
+      const selectedPlate = plateSelect ? parseInt(plateSelect.value) : 1;
       const rawText = document.getElementById('sequence-input').value;
       const searchEl = document.getElementById('search-input');
       const searchQuery = searchEl ? searchEl.value.trim().toLowerCase() : '';
@@ -1431,7 +1142,8 @@
       const positionsPerPlate = ROWS.length * COLS;
       const vialMap = {}; const dynamicVialMap = {};
 
-      seqListEl.innerHTML = ''; tbody.innerHTML = '';
+      if (seqListEl) seqListEl.innerHTML = '';
+      if (tbody) tbody.innerHTML = '';
       globalSequenceData = [];
       let nextAutoIndex = 0;
 
@@ -1462,9 +1174,11 @@
 
         globalSequenceData.push({ location: csVialLocation, name: sampleName });
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${index + 1}</td><td>${csVialLocation}</td><td>${sampleName}</td>`;
-        tbody.appendChild(tr);
+        if (tbody) {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `<td>${index + 1}</td><td>${csVialLocation}</td><td>${sampleName}</td>`;
+          tbody.appendChild(tr);
+        }
 
         if (samplePlate === selectedPlate) {
           if (!vialMap[samplePos]) vialMap[samplePos] = { name: sampleName, seqNums: [index + 1], isFixed };
@@ -1504,13 +1218,10 @@
 
         listItem.onclick = (e) => { if (e.target.type !== 'checkbox') toggleCompletion(index); };
         listItem.querySelector('input').onchange = () => toggleCompletion(index);
-        listItem.onmouseenter = () => { if (samplePlate === selectedPlate) document.getElementById(`vial-${samplePos}`)?.classList.add('highlighted'); };
-        listItem.onmouseleave = () => window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
 
-        seqListEl.appendChild(listItem);
+        if (seqListEl) seqListEl.appendChild(listItem);
       });
 
-      window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
       calculateEstimates();
 
       if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
@@ -1518,46 +1229,18 @@
           document.getElementById('finish-time-display').innerText = new Date().toLocaleTimeString();
           openModal('finish-modal');
           runFinishedAlerted = true;
-          toggleRunState();
+          toggleRunState(); // this will call saveToCache via its own logic if we want, but we'll do it below
         }
       } else {
         runFinishedAlerted = false;
       }
 
-      saveToCache();
+      if (!skipEmit) {
+        saveToCache(false);
+      }
       seqListEl.scrollTop = currentScroll;
     }
 
-    function updateGridHighlights(vialMap, searchQuery) {
-      ROWS.forEach(row => {
-        for (let c = 1; c <= COLS; c++) {
-          const pos = `${row}${c}`;
-          const vialEl = document.getElementById(`vial-${pos}`);
-          const tooltipEl = document.getElementById(`tooltip-${pos}`);
-          const data = vialMap[pos];
-
-          vialEl.className = 'vial';
-
-          if (data) {
-            const allCompleted = data.seqNums.every(n => completedIndices.has(n - 1));
-
-            if (data.isFixed) vialEl.classList.add('fixed');
-            else {
-              const lowerName = data.name.toLowerCase();
-              if (lowerName.includes('spike')) vialEl.classList.add('spike');
-              else if (lowerName.includes('std') || lowerName.includes('cal')) vialEl.classList.add('std');
-              else vialEl.classList.add('occupied');
-            }
-            if (allCompleted) vialEl.classList.add('vial-completed');
-
-            tooltipEl.innerText = `${pos}: ${data.name} (${data.seqNums.map(n => `#${n}`).join(', ')})`;
-            if (searchQuery && (data.name.toLowerCase().includes(searchQuery) || pos.toLowerCase().includes(searchQuery))) vialEl.classList.add('highlighted');
-          } else {
-            tooltipEl.innerText = `${pos}: Empty`;
-          }
-        }
-      });
-    }
 
     // --- Calculator Logic ---
     function formatTime(minutes) {
@@ -1568,44 +1251,10 @@
       return mL > 1000 ? (mL / 1000).toFixed(2) + ' L' : mL.toFixed(1) + ' mL';
     }
 
-    function calculateCustomSamples() {
-      const count = parseInt(document.getElementById('calc-samples-input').value) || 0;
-      const res = document.getElementById('calc-result');
-      if (count <= 0) {
-        res.style.display = 'none';
-        return;
-      }
-      res.style.display = 'block';
-
-      const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
-      const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
-      const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
-      const timePerInj = runTimeMin + delayMin;
-
-      let pA = parseFloat(document.getElementById('sol-a').value) || 0;
-      let pB = parseFloat(document.getElementById('sol-b').value) || 0;
-      const sum = pA + pB;
-      if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
-
-      const totalVol = count * timePerInj * flowRate;
-      const reqA = totalVol * pA;
-      const reqB = totalVol * pB;
-
-      document.getElementById('calc-req-a').innerText = formatVol(reqA);
-      document.getElementById('calc-req-b').innerText = formatVol(reqB);
-    }
-
     function calculateEstimates() {
       const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
-      const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
       const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
-      const timePerInj = runTimeMin + delayMin;
-
-      // Gradient Setup
-      let pA = parseFloat(document.getElementById('sol-a').value) || 0;
-      let pB = parseFloat(document.getElementById('sol-b').value) || 0;
-      const sum = pA + pB;
-      if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
+      const timePerInj = runTimeMin + DELAY_MINS;
 
       const totalInj = globalSequenceData.length;
       const comp = completedIndices.size;
@@ -1617,42 +1266,22 @@
       document.getElementById('prep-time').innerText = formatTime(totalMins);
       document.getElementById('prep-vol').innerText = formatVol(totalVol);
 
-      const reqA = totalVol * pA;
-      const reqB = totalVol * pB;
-      document.getElementById('p-vol-a').innerText = formatVol(reqA);
-      document.getElementById('p-vol-b').innerText = formatVol(reqB);
-
-      const botA = parseFloat(document.getElementById('bot-a').value) || 0;
-      const botB = parseFloat(document.getElementById('bot-b').value) || 0;
-      const remA = botA - reqA;
-      const remB = botB - reqB;
-
-      const remAElem = document.getElementById('p-rem-a');
-      remAElem.innerText = formatVol(remA);
-      remAElem.style.color = remA < 0 ? 'var(--danger-color)' : 'inherit';
-
-      const remBElem = document.getElementById('p-rem-b');
-      remBElem.innerText = formatVol(remB);
-      remBElem.style.color = remB < 0 ? 'var(--danger-color)' : 'inherit';
-
       // RUN MONITOR (Remaining)
       document.getElementById('est-injections').innerText = `${comp} / ${totalInj}`;
-      document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
 
-      const remMins = remInj * timePerInj;
-      const remVol = remMins * flowRate;
-
-      document.getElementById('est-time').innerText = formatTime(remMins);
-      document.getElementById('est-volume-total').innerText = formatVol(remVol);
-
-      updateEndTime(remMins);
-      calculateCustomSamples();
+      if (!isRunning) {
+        document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
+        updateEndTime(-1); // Hide end time if not running
+      } else {
+        const remMins = remInj * timePerInj;
+        updateEndTime(remMins);
+      }
     }
 
     function updateEndTime(remMins) {
       if (remMins > 0 && globalSequenceData.length > 0) {
         const now = new Date();
-        now.setMinutes(now.getMinutes() + remMins);
+        now.setTime(now.getTime() + remMins * 60000); // add exactly in milliseconds
         document.getElementById('est-end').innerText = now.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
         document.getElementById('est-end').style.color = 'var(--text-primary)';
       } else if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
@@ -1667,11 +1296,38 @@
     function startLiveTimer() {
       setInterval(() => {
         document.getElementById('live-clock').innerText = new Date().toLocaleTimeString();
-        if (isRunning) {
-          const time = (parseFloat(document.getElementById('runtime-input').value) || 0) + (parseFloat(document.getElementById('delay-input').value) || 0);
-          updateEndTime((globalSequenceData.length - completedIndices.size) * time);
+
+        if (globalSequenceData.length > 0) {
+          const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
+          const timePerInjMs = (runTimeMin + DELAY_MINS) * 60 * 1000;
+
+          if (isRunning) {
+            if (completedIndices.size < globalSequenceData.length) {
+              const elapsed = Date.now() - currentSampleStartTime;
+
+              // Auto-advance if sample finished
+              if (elapsed >= timePerInjMs) {
+                completedIndices.add(completedIndices.size); // marks the current index complete
+                currentSampleStartTime = Date.now();
+                updateVisualization();
+              } else {
+                // Smooth progress update
+                const totalMsNeeded = globalSequenceData.length * timePerInjMs;
+                const totalMsElapsed = (completedIndices.size * timePerInjMs) + elapsed;
+                const progressPct = Math.min((totalMsElapsed / totalMsNeeded) * 100, 100);
+
+                document.getElementById('progress-bar').style.width = `${progressPct}%`;
+
+                const totalRemMs = totalMsNeeded - totalMsElapsed;
+                updateEndTime(totalRemMs / 60000);
+              }
+            }
+          } else {
+            // Hide estimated end time if not running
+            updateEndTime(-1);
+          }
         }
-      }, 1000);
+      }, 500); // Check twice a second for smooth progress updates
     }
 
     // --- QR and File Import ---
