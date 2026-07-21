@@ -794,6 +794,9 @@
       <h1 title="HPLC Run Monitor">HPLC Run Monitor</h1>
     </div>
     <div class="header-center">
+      <span id="sync-status"
+        style="font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; background:#ffffff; color:#777; letter-spacing:0.3px; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;">⏳
+        Connecting…</span>
     </div>
     <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
   </div>
@@ -931,7 +934,7 @@
         <div
           style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:8px;">
           <div class="card-title" style="margin:0;">Run Queue</div>
-          <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">
+          <div style="font-size:11px; font-weight:600; color:var(--text-secondary);">
             Finished: <span id="samples-finished" style="color:var(--success-color);">0</span> |
             Remaining: <span id="samples-remaining" style="color:var(--text-primary);">0</span>
           </div>
@@ -960,71 +963,97 @@
     const DELAY_MINS = 10 / 60; // Constant 10 seconds delay
     let currentSampleStartTime = 0;
 
-    // Time Sync to perfectly match progress on mobile and web
+    // Time Sync — ensures progress bar is identical on all devices
     let serverTimeOffset = 0;
     function getSyncedTime() {
       return Date.now() + serverTimeOffset;
     }
 
-    // Supabase initialization
-    const SUPABASE_URL = 'https://uuapgenxntmbzwxfixke.supabase.co'; // Replace with your Supabase URL
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1YXBnZW54bnRtYnp3eGZpeGtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMjYyNDMsImV4cCI6MjA3NzgwMjI0M30.pXLR3MrJKLNtkYfC7fAmQkBz_vH-8otrqAiA7LJ7l38'; // Replace with your Supabase anon key
+    // ── Supabase ──────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://uuapgenxntmbzwxfixke.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1YXBnZW54bnRtYnp3eGZpeGtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMjYyNDMsImV4cCI6MjA3NzgwMjI0M30.pXLR3MrJKLNtkYfC7fAmQkBz_vH-8otrqAiA7LJ7l38';
 
-    const supabase = (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+    const sbClient = (typeof window.supabase !== 'undefined')
       ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
       : null;
 
-    if (supabase) {
-      // Sync clock with the server
-      const syncClock = async () => {
+    if (sbClient) {
+      // 1. Sync this device's clock to the Supabase server clock
+      (async () => {
         try {
-          const { data, error } = await supabase.rpc('get_server_time');
-          if (!error && data) {
+          const { data, error } = await sbClient.rpc('get_server_time');
+          if (error) {
+            console.error('Clock RPC error:', error);
+          } else if (data) {
             serverTimeOffset = data - Date.now();
+            console.log('Clock synced. Offset:', serverTimeOffset, 'ms');
           }
-        } catch (e) {
-          console.error('Failed to sync time', e);
-        }
-      };
-      syncClock();
+        } catch (e) { console.error('Clock sync failed:', e); }
+      })();
 
-      // Fetch initial state
-      const fetchInitialState = async () => {
-        const { data, error } = await supabase.from('app_state').select('state_data').eq('id', 1).single();
-        if (!error && data && data.state_data) {
-          applyRemoteState(data.state_data);
-        }
-      };
-      fetchInitialState();
+      // 2. Load the current shared state from the database on page open
+      (async () => {
+        try {
+          const { data, error } = await sbClient
+            .from('app_state').select('state_data').eq('id', 1).single();
+          if (error) {
+            console.error('State fetch error:', error.message, error.details, error.hint);
+            setSyncStatus('❌ DB Error: ' + error.message, '#f44336');
+          } else if (data?.state_data) {
+            applyRemoteState(data.state_data);
+          }
+        } catch (e) { console.error('Initial state fetch failed:', e); }
+      })();
 
-      // Subscribe to real-time changes
-      supabase.channel('app_state_channel')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' }, payload => {
-          applyRemoteState(payload.new.state_data);
-        })
-        .subscribe();
+      // 3. Subscribe to live updates — any device's save pushes here
+      sbClient.channel('app_state_channel')
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' },
+          payload => applyRemoteState(payload.new.state_data)
+        )
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') setSyncStatus('✅ Live Sync ON', '#4caf50');
+          else if (status === 'CHANNEL_ERROR') {
+            console.error('Realtime error:', err);
+            setSyncStatus('❌ Realtime error', '#f44336');
+          } else {
+            setSyncStatus('⏳ ' + status, '#ff9800');
+          }
+        });
+    } else {
+      setSyncStatus('⚠️ Offline (no Supabase)', '#ff9800');
     }
 
+    function setSyncStatus(text, color) {
+      const el = document.getElementById('sync-status');
+      if (el) {
+        el.textContent = text;
+        el.style.color = color;
+        el.style.background = '#ffffff';
+        el.style.boxShadow = '0 0 0 2px ' + color + '55';
+      }
+    }
+
+    // Applies a state object received from Supabase to the local UI
     function applyRemoteState(state) {
       if (!state) return;
-      let needsUpdate = false;
+      let changed = false;
+      const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el && el.value !== String(val)) { el.value = val; changed = true; }
+      };
+      set('injvol-input', state.injvol ?? '');
+      set('runtime-input', state.runtime ?? '');
+      set('flowrate-input', state.flowrate ?? '');
+      set('fixed-input', state.fixed ?? '');
+      set('sequence-input', state.sequence ?? '');
 
-      if (state.injvol !== undefined) { document.getElementById('injvol-input').value = state.injvol; needsUpdate = true; }
-      if (state.runtime !== undefined) { document.getElementById('runtime-input').value = state.runtime; needsUpdate = true; }
-      if (state.flowrate !== undefined) { document.getElementById('flowrate-input').value = state.flowrate; needsUpdate = true; }
-      if (state.fixed !== undefined && document.getElementById('fixed-input').value !== state.fixed) {
-        document.getElementById('fixed-input').value = state.fixed; needsUpdate = true;
-      }
-      if (state.sequence !== undefined && document.getElementById('sequence-input').value !== state.sequence) {
-        document.getElementById('sequence-input').value = state.sequence; needsUpdate = true;
-      }
-      if (state.completed) {
-        completedIndices = new Set(state.completed);
-        needsUpdate = true;
-      }
+      if (state.completed) { completedIndices = new Set(state.completed); changed = true; }
+      if (state.currentSampleStartTime != null) { currentSampleStartTime = state.currentSampleStartTime; changed = true; }
+
       if (state.running !== undefined && state.running !== isRunning) {
         isRunning = state.running;
-        needsUpdate = true;
+        changed = true;
         const btn = document.getElementById('start-run-btn');
         if (isRunning) {
           btn.innerHTML = 'Pause Run';
@@ -1034,14 +1063,7 @@
           btn.classList.replace('btn-warning', 'btn-success');
         }
       }
-      if (state.currentSampleStartTime !== undefined) {
-        currentSampleStartTime = state.currentSampleStartTime;
-        needsUpdate = true;
-      }
-
-      if (needsUpdate) {
-        updateVisualization(true);
-      }
+      if (changed) updateVisualization(true);
     }
 
     // --- Modal & Theme Logic ---
@@ -1082,14 +1104,15 @@
       const body = document.body;
       if (body.getAttribute('data-theme') !== 'dark') {
         body.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
+        try { localStorage.setItem('theme', 'dark'); } catch (e) { }
       } else {
         body.removeAttribute('data-theme');
-        localStorage.setItem('theme', 'light');
+        try { localStorage.setItem('theme', 'light'); } catch (e) { }
       }
     }
 
-    // --- State Management ---
+    // ── State Management ─────────────────────────────────────────
+    let _syncTimer = null;
     function saveToCache(skipEmit = false) {
       const cacheData = {
         injvol: document.getElementById('injvol-input').value,
@@ -1101,19 +1124,28 @@
         running: isRunning,
         currentSampleStartTime: currentSampleStartTime
       };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData)); } catch (e) { }
 
-      if (!skipEmit && supabase) {
-        supabase.from('app_state').update({ state_data: cacheData }).eq('id', 1).then(({ error }) => {
-          if (error) console.error('Failed to sync state:', error);
-        });
+      // Push to Supabase with 400 ms debounce to avoid hammering the DB on every keystroke
+      if (!skipEmit && sbClient) {
+        clearTimeout(_syncTimer);
+        _syncTimer = setTimeout(() => {
+          sbClient.from('app_state')
+            .update({ state_data: cacheData }).eq('id', 1)
+            .then(({ error }) => { if (error) console.error('Sync failed:', error); });
+        }, 400);
       }
     }
 
     function loadFromCache() {
-      if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
-      else document.body.removeAttribute('data-theme');
-      const cachedStr = localStorage.getItem(CACHE_KEY);
+      try {
+        if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        else document.body.removeAttribute('data-theme');
+      } catch (e) { }
+
+      let cachedStr = null;
+      try { cachedStr = localStorage.getItem(CACHE_KEY); } catch (e) { }
+
       if (cachedStr) {
         try {
           const c = JSON.parse(cachedStr);
@@ -1133,7 +1165,7 @@
     // --- Run Control ---
     function toggleRunState(isRestore = false) {
       if (!isRestore && !isRunning && (!globalSequenceData || globalSequenceData.length === 0)) {
-        alert("Cannot start run. Sequence list is blank.");
+        alert('Cannot start run. Sequence list is blank.');
         return;
       }
       isRunning = !isRunning;
@@ -1142,10 +1174,7 @@
         btn.innerHTML = 'Pause Run';
         btn.classList.replace('btn-success', 'btn-warning');
         runFinishedAlerted = false;
-        // Start tracking time for the current sample only if not restoring from cache
-        if (!isRestore) {
-          currentSampleStartTime = getSyncedTime();
-        }
+        if (!isRestore) currentSampleStartTime = getSyncedTime();
       } else {
         btn.innerHTML = 'Start Run';
         btn.classList.replace('btn-warning', 'btn-success');
@@ -1160,8 +1189,6 @@
       saveToCache();
     }
 
-
-    loadFromCache(); startLiveTimer(); updateVisualization();
 
     function resetProgress() {
       if (confirm("Reset all checkmarks?")) {
@@ -1359,13 +1386,9 @@
 
       const currentSampleEl = document.getElementById('current-sample-display');
       if (currentSampleEl) {
-        if (isRunning && comp < totalInj) {
-          currentSampleEl.innerText = globalSequenceData[comp].name;
-        } else if (comp >= totalInj && totalInj > 0) {
-          currentSampleEl.innerText = "Finished";
-        } else {
-          currentSampleEl.innerText = "None";
-        }
+        if (isRunning && comp < totalInj) currentSampleEl.innerText = globalSequenceData[comp].name;
+        else if (comp >= totalInj && totalInj > 0) currentSampleEl.innerText = 'Finished';
+        else currentSampleEl.innerText = 'None';
       }
 
       if (!isRunning) {
@@ -1406,7 +1429,7 @@
 
               // Auto-advance if sample finished
               if (elapsed >= timePerInjMs) {
-                completedIndices.add(completedIndices.size); // marks the current index complete
+                completedIndices.add(completedIndices.size);
                 currentSampleStartTime = getSyncedTime();
                 updateVisualization();
               } else {
@@ -1494,7 +1517,7 @@
       }
     }
 
-    createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
+    loadFromCache(); startLiveTimer(); updateVisualization();
   </script>
   <footer style="text-align: center; font-size: 10px; color: var(--text-muted); padding: 4px;">
     &copy; 2026 | ccuadmin01
