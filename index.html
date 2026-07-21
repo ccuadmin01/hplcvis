@@ -1129,10 +1129,16 @@
       // Push to Supabase with 400 ms debounce to avoid hammering the DB on every keystroke
       if (!skipEmit && sbClient) {
         clearTimeout(_syncTimer);
-        _syncTimer = setTimeout(() => {
-          sbClient.from('app_state')
-            .update({ state_data: cacheData }).eq('id', 1)
-            .then(({ error }) => { if (error) console.error('Sync failed:', error); });
+        _syncTimer = setTimeout(async () => {
+          // Use upsert so it works even if the row doesn't exist yet
+          const { error } = await sbClient.from('app_state')
+            .upsert({ id: 1, state_data: cacheData }, { onConflict: 'id' });
+          if (error) {
+            console.error('Sync failed:', error.message, error.details, error.hint);
+            setSyncStatus('❌ Save failed: ' + error.message, '#f44336');
+          } else {
+            setSyncStatus('✅ Live Sync ON', '#4caf50');
+          }
         }, 400);
       }
     }
