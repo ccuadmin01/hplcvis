@@ -2,1476 +2,1498 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agilent HPLC Sequence Visualizer</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agilent HPLC Sequence Visualizer</title>
 
-    <!-- QR Code Scanning Library -->
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- PWA Manifest & Service Worker -->
+  <link rel="manifest" href="manifest.json">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(reg => {
+          console.log('ServiceWorker registered with scope:', reg.scope);
+        }).catch(err => {
+          console.error('ServiceWorker registration failed:', err);
+        });
+      });
+    }
+  </script>
 
-    <style>
-        /* ============================================================
+  <!-- QR Code Scanning Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+  <style>
+    /* ============================================================
            ENTERPRISE LABORATORY DASHBOARD
            Inspired by Fluent Design, Material Design & Chromeleon
            Typography: Segoe UI / Inter / Roboto
         ============================================================ */
 
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        :root {
-            /* Typography */
-            --font-family: 'Calibri', 'Segoe UI', system-ui, sans-serif;
-            --font-size-base: 13px;
-            --font-size-sm: 12px;
-            --font-size-xs: 11px;
+    :root {
+      /* Typography */
+      --font-family: Arial, sans-serif;
+      --font-size-base: 13px;
+      --font-size-sm: 12px;
+      --font-size-xs: 11px;
 
-            /* Colors: Classic WinForms Scheme */
-            --bg-color: #F0F0F0;
-            --surface-color: #F0F0F0;
-            --surface-hover: #E8E8E8;
+      --bg-color: #0f172a;
+      --surface-color: #1e293b;
+      --surface-hover: #26334a;
 
-            --primary-color: #000000;
-            --primary-hover: #333333;
-            --primary-light: #D9D9D9;
+      --primary-color: #3b82f6;
+      --primary-light: #1e3a8a;
 
-            --text-primary: #000000;
-            --text-secondary: #333333;
-            --text-muted: #666666;
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --border-color: #334155;
 
-            --border-color: #A0A0A0;
-            --border-strong: #696969;
+      --empty-bg: #1e293b;
+      --empty-border: #475569;
 
-            /* Semantic Colors */
-            --success-color: #008000;
-            --success-bg: #E6F2E6;
-            --warning-color: #FFA500;
-            --warning-bg: #FFF6E6;
-            --danger-color: #FF0000;
-            --danger-bg: #FFE6E6;
+      --fixed-bg: #334155;
+      --fixed-border: #64748b;
 
-            /* Plate Colors */
-            --empty-bg: #FFFFFF;
-            --empty-border: #A0A0A0;
+      --std-bg: #451a03;
+      --std-border: #d97706;
 
-            --fixed-bg: #E0E0E0;
-            --fixed-border: #808080;
-            --fixed-text: #000000;
+      --spike-bg: #3b0764;
+      --spike-border: #9333ea;
 
-            --std-bg: #FFFFE0;
-            --std-border: #BDB76B;
-            --std-text: #000000;
+      --occupied-bg: #052e16;
+      --occupied-border: #16a34a;
 
-            --spike-bg: #E6E6FA;
-            --spike-border: #9370DB;
-            --spike-text: #000000;
+      --input-bg: #1e293b;
+      --btn-bg: #334155;
+      --btn-text: #f8fafc;
+      --btn-border: #64748b;
+      --btn-border-dark: #0f172a;
+    }
 
-            --occupied-bg: #E0FFE0;
-            --occupied-border: #008000;
-            --occupied-text: #000000;
+    /* Light Theme */
+    [data-theme="light"] {
+      /* Colors: Classic WinForms Scheme */
+      --bg-color: #F0F0F0;
+      --surface-color: #F0F0F0;
+      --surface-hover: #E8E8E8;
 
-            --highlight-border: #0000FF;
-            --highlight-bg: #E6E6FF;
+      --primary-color: #000000;
+      --primary-hover: #333333;
+      --primary-light: #D9D9D9;
 
-            /* Visuals */
-            --shadow-sm: none;
-            --shadow-md: none;
-            --radius-md: 0px;
-            --radius-lg: 0px;
-            --transition: 0s;
+      --text-primary: #000000;
+      --text-secondary: #333333;
+      --text-muted: #666666;
 
-            --input-bg: #FFFFFF;
-            --btn-bg: #E1E1E1;
-            --btn-text: #000000;
-            --btn-border: #696969;
-            --btn-border-dark: #333333;
-        }
+      --border-color: #A0A0A0;
+      --border-strong: #696969;
 
-        /* Dark Theme */
-        [data-theme="dark"] {
-            --bg-color: #0f172a;
-            --surface-color: #1e293b;
-            --surface-hover: #26334a;
+      /* Semantic Colors */
+      --success-color: #008000;
+      --success-bg: #E6F2E6;
+      --warning-color: #FFA500;
+      --warning-bg: #FFF6E6;
+      --danger-color: #FF0000;
+      --danger-bg: #FFE6E6;
 
-            --primary-color: #3b82f6;
-            --primary-light: #1e3a8a;
+      /* Plate Colors */
+      --empty-bg: #FFFFFF;
+      --empty-border: #A0A0A0;
 
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --border-color: #334155;
+      --fixed-bg: #E0E0E0;
+      --fixed-border: #808080;
+      --fixed-text: #000000;
 
-            --empty-bg: #1e293b;
-            --empty-border: #475569;
+      --std-bg: #FFFFE0;
+      --std-border: #BDB76B;
+      --std-text: #000000;
 
-            --fixed-bg: #334155;
-            --fixed-border: #64748b;
+      --spike-bg: #E6E6FA;
+      --spike-border: #9370DB;
+      --spike-text: #000000;
 
-            --std-bg: #451a03;
-            --std-border: #d97706;
+      --occupied-bg: #E0FFE0;
+      --occupied-border: #008000;
+      --occupied-text: #000000;
 
-            --spike-bg: #3b0764;
-            --spike-border: #9333ea;
+      --highlight-border: #0000FF;
+      --highlight-bg: #E6E6FF;
 
-            --occupied-bg: #052e16;
-            --occupied-border: #16a34a;
+      /* Visuals */
+      --shadow-sm: none;
+      --shadow-md: none;
+      --radius-md: 0px;
+      --radius-lg: 0px;
+      --transition: 0s;
 
-            --input-bg: #1e293b;
-            --btn-bg: #334155;
-            --btn-text: #f8fafc;
-            --btn-border: #64748b;
-            --btn-border-dark: #0f172a;
-        }
+      --input-bg: #FFFFFF;
+      --btn-bg: #E1E1E1;
+      --btn-text: #000000;
+      --btn-border: #696969;
+      --btn-border-dark: #333333;
+    }
 
 
-        /* Responsive Mobile Layout */
-        @media (max-width: 1200px) {
-            .dashboard {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
+    /* Responsive Mobile Layout */
+    @media (max-width: 1200px) {
+      .dashboard {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
 
-        @media (max-width: 768px) {
-            .dashboard {
-                grid-template-columns: 1fr;
-            }
+    @media (max-width: 768px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
 
-            .col {
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-            }
+      .col {
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+      }
 
-            .col:last-child {
-                border-bottom: none;
-            }
+      .col:last-child {
+        border-bottom: none;
+      }
 
-            .plate-grid {
-                margin: 0 auto;
-            }
+      .plate-grid {
+        margin: 0 auto;
+      }
 
-            .global-header {
-                flex-direction: column;
-                gap: 12px;
-                height: auto;
-                padding: 16px;
-            }
+      .global-header {
+        flex-direction: column;
+        gap: 12px;
+        height: auto;
+        padding: 16px;
+      }
 
-            .header-right {
-                width: 100%;
-                justify-content: center;
-            }
-        }
+      .header-right {
+        width: 100%;
+        justify-content: center;
+      }
+    }
 
-        /* Basic Resets */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+    /* Basic Resets */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
-        body {
-            font-family: var(--font-family);
-            font-size: var(--font-size-base);
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            /* No page scroll */
-            transition: background-color var(--transition);
-        }
+    /* Dark Scrollbar */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
 
-        /* ----------------------------------------------------
+    ::-webkit-scrollbar-track {
+      background: var(--surface-color);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 5px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-strong);
+    }
+
+    body {
+      font-family: var(--font-family);
+      font-size: var(--font-size-base);
+      background-color: var(--bg-color);
+      color: var(--text-primary);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      /* No page scroll */
+      transition: background-color var(--transition);
+    }
+
+    /* ----------------------------------------------------
            Global Header
         ---------------------------------------------------- */
-        .global-header {
-            background-color: var(--primary-color);
-            color: #ffffff;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 20px;
-            box-shadow: var(--shadow-sm);
-            flex-shrink: 0;
-            z-index: 100;
-        }
+    .global-header {
+      background-color: var(--primary-color);
+      color: #ffffff;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      box-shadow: var(--shadow-sm);
+      flex-shrink: 0;
+      z-index: 100;
+    }
 
-        .header-left,
-        .header-center,
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
+    .header-left,
+    .header-center,
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-        .header-left {
-            flex: 1;
-        }
+    .header-left {
+      flex: 1;
+    }
 
-        .header-center {
-            flex: 2;
-            justify-content: center;
-        }
+    .header-center {
+      flex: 2;
+      justify-content: center;
+    }
 
-        .header-right {
-            flex: 1;
-            justify-content: flex-end;
-        }
+    .header-right {
+      flex: 1;
+      justify-content: flex-end;
+    }
 
-        .global-header h1 {
-            font-size: 16px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
+    .global-header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
 
-        .header-center .method-label {
-            font-size: 13px;
-            opacity: 0.9;
-        }
+    .header-center .method-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
 
-        .header-center select,
-        .header-center input {
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 4px 10px;
-            border-radius: var(--radius-md);
-            font-size: 13px;
-        }
+    .header-center select,
+    .header-center input {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 4px 10px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+    }
 
-        .header-center select option {
-            color: #000;
-        }
+    .header-center select option {
+      color: #000;
+    }
 
-        .btn-header {
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 6px 12px;
-            border-radius: var(--radius-md);
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 13px;
-            font-weight: 500;
-        }
+    .btn-header {
+      background: transparent;
+      border: none;
+      color: white;
+      padding: 6px 12px;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: var(--transition);
+      font-size: 13px;
+      font-weight: 500;
+    }
 
-        .btn-header:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
+    .btn-header:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            4-Column Layout
         ---------------------------------------------------- */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            padding: 16px;
-            height: calc(100vh - 48px);
-            overflow: hidden;
-        }
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 16px;
+      height: calc(100vh - 48px);
+      overflow: hidden;
+    }
 
-        .col {
-            background: var(--surface-color);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            /* contain inner scrolls */
-        }
+    .col {
+      background: var(--surface-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      /* contain inner scrolls */
+    }
 
-        .col-header {
-            padding: 0 16px;
-            height: 44px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--surface-hover);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .col-header {
+      padding: 0 16px;
+      height: 44px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--surface-hover);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .col-header h2 {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--primary-color);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+    .col-header h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-color);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-        .col-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-        }
+    .col-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Inputs & Cards
         ---------------------------------------------------- */
-        .card {
-            border: 2px groove #E0E0E0;
-            border-radius: 0;
-            padding: 12px;
-            background: var(--surface-color);
-        }
+    .card {
+      border: 2px groove #E0E0E0;
+      border-radius: 0;
+      padding: 12px;
+      background: var(--surface-color);
+    }
 
-        .card-title {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 12px;
-        }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
 
-        .input-group:last-child {
-            margin-bottom: 0;
-        }
+    .input-group:last-child {
+      margin-bottom: 0;
+    }
 
-        .input-row {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 12px;
-        }
+    .input-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
 
-        .input-row>.input-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
+    .input-row>.input-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
 
-        label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
 
-        input,
-        select,
-        textarea {
-            padding: 4px 6px;
-            border: 1px solid #A0A0A0;
-            border-top: 1px solid #696969;
-            border-left: 1px solid #696969;
-            border-radius: 0;
-            font-family: var(--font-family);
-            font-size: 13px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-        }
+    input,
+    select,
+    textarea {
+      padding: 4px 6px;
+      border: 1px solid #A0A0A0;
+      border-top: 1px solid #696969;
+      border-left: 1px solid #696969;
+      border-radius: 0;
+      font-family: var(--font-family);
+      font-size: 13px;
+      background: var(--input-bg);
+      color: var(--text-primary);
+    }
 
-        input:focus,
-        textarea:focus,
-        select:focus {
-            outline: 1px solid #000000;
-        }
+    input:focus,
+    textarea:focus,
+    select:focus {
+      outline: 1px solid #000000;
+    }
 
-        textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Buttons
         ---------------------------------------------------- */
-        .btn {
-            padding: 6px 16px;
-            border-radius: 0;
-            font-weight: 400;
-            font-size: 13px;
-            cursor: default;
-            border: 1px solid var(--btn-border);
-            border-bottom: 1px solid var(--btn-border-dark);
-            border-right: 1px solid var(--btn-border-dark);
-            background: var(--btn-bg);
-            color: var(--btn-text);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
+    .btn {
+      padding: 6px 16px;
+      border-radius: 0;
+      font-weight: 400;
+      font-size: 13px;
+      cursor: default;
+      border: 1px solid var(--btn-border);
+      border-bottom: 1px solid var(--btn-border-dark);
+      border-right: 1px solid var(--btn-border-dark);
+      background: var(--btn-bg);
+      color: var(--btn-text);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
 
-        .btn:hover {
-            background: var(--surface-hover);
-        }
+    .btn:hover {
+      background: var(--surface-hover);
+    }
 
-        .btn:active {
-            border: 1px solid var(--btn-border-dark);
-            border-bottom: 1px solid var(--btn-border);
-            border-right: 1px solid var(--btn-border);
-            background: var(--surface-hover);
-        }
+    .btn:active {
+      border: 1px solid var(--btn-border-dark);
+      border-bottom: 1px solid var(--btn-border);
+      border-right: 1px solid var(--btn-border);
+      background: var(--surface-hover);
+    }
 
-        .btn-primary {
-            border: 1px solid #000000;
-        }
+    .btn-primary {
+      border: 1px solid #000000;
+    }
 
-        .btn-primary:hover {
-            background: #E8E8E8;
-        }
+    .btn-primary:hover {
+      background: #E8E8E8;
+    }
 
-        .btn-secondary {
-            /* same as btn */
-        }
+    .btn-secondary {
+      /* same as btn */
+    }
 
-        #start-run-btn {
-            font-size: 14px;
-            font-weight: bold;
-            padding: 8px;
-            width: 100%;
-        }
+    #start-run-btn {
+      font-size: 14px;
+      font-weight: bold;
+      padding: 8px;
+      width: 100%;
+    }
 
-        .btn-success {
-            background: #E1E1E1;
-            color: #008000;
-        }
+    .btn-success {
+      background: #E1E1E1;
+      color: #008000;
+    }
 
-        .btn-success:hover {
-            background: #D1D1D1;
-        }
+    .btn-success:hover {
+      background: #D1D1D1;
+    }
 
-        .btn-warning {
-            background: #E1E1E1;
-            color: #CC6600;
-        }
+    .btn-warning {
+      background: #E1E1E1;
+      color: #CC6600;
+    }
 
-        .btn-warning:hover {
-            background: #D1D1D1;
-        }
+    .btn-warning:hover {
+      background: #D1D1D1;
+    }
 
-        .btn-danger {
-            color: var(--danger-color);
-            background: #E1E1E1;
-            border: 1px solid #696969;
-            border-bottom: 1px solid #333333;
-            border-right: 1px solid #333333;
-            padding: 4px 8px;
-        }
+    .btn-danger {
+      color: var(--danger-color);
+      background: #E1E1E1;
+      border: 1px solid #696969;
+      border-bottom: 1px solid #333333;
+      border-right: 1px solid #333333;
+      padding: 4px 8px;
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Column 1: Plate Grid (No Scroll, Full Visibility)
         ---------------------------------------------------- */
-        #col-plate .col-body {
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+    #col-plate .col-body {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
 
-        .plate-container {
-            width: 100%;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 0;
-            /* allows flex shrinking */
-        }
+    .plate-container {
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      min-height: 0;
+      /* allows flex shrinking */
+    }
 
-        .plate-grid {
-            display: grid;
-            grid-template-columns: 16px repeat(6, 22px);
-            gap: 4px;
-            justify-content: center;
-            width: 100%;
-            margin: 0 auto;
-        }
+    .plate-grid {
+      display: grid;
+      grid-template-columns: 16px repeat(6, 28px);
+      gap: 6px;
+      justify-content: center;
+      width: 100%;
+      margin: 0 auto;
+    }
 
-        .header-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    .header-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-        .vial {
-            aspect-ratio: 1;
-            border-radius: 50%;
-            border: 2px solid var(--empty-border);
-            background: var(--empty-bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            position: relative;
-            transition: var(--transition);
-            cursor: default;
-        }
+    .vial {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 2px solid var(--empty-border);
+      background: var(--empty-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: relative;
+      transition: var(--transition);
+      cursor: default;
+    }
 
-        .vial.selected {
-            border-color: var(--highlight-border);
-            background: var(--highlight-bg);
-            box-shadow: 0 0 0 2px var(--highlight-border);
-        }
+    .vial.selected {
+      border-color: var(--highlight-border);
+      background: var(--highlight-bg);
+      box-shadow: 0 0 0 2px var(--highlight-border);
+    }
 
-        .vial:hover {
-            transform: scale(1.15);
-            z-index: 10;
-            box-shadow: var(--shadow-md);
-        }
+    .vial:hover {
+      transform: scale(1.15);
+      z-index: 10;
+      box-shadow: var(--shadow-md);
+    }
 
-        .vial.fixed {
-            border-color: var(--fixed-border);
-            background: var(--fixed-bg);
-        }
+    .vial.fixed {
+      border-color: var(--fixed-border);
+      background: var(--fixed-bg);
+    }
 
-        .vial.std {
-            border-color: var(--std-border);
-            background: var(--std-bg);
-        }
+    .vial.std {
+      border-color: var(--std-border);
+      background: var(--std-bg);
+    }
 
-        .vial.spike {
-            border-color: var(--spike-border);
-            background: var(--spike-bg);
-        }
+    .vial.spike {
+      border-color: var(--spike-border);
+      background: var(--spike-bg);
+    }
 
-        .vial.occupied {
-            border-color: var(--occupied-border);
-            background: var(--occupied-bg);
-        }
+    .vial.occupied {
+      border-color: var(--occupied-border);
+      background: var(--occupied-bg);
+    }
 
-        .vial.highlighted {
-            border-color: var(--highlight-border);
-            background: var(--highlight-bg);
-        }
+    .vial.highlighted {
+      border-color: var(--highlight-border);
+      background: var(--highlight-bg);
+    }
 
-        .vial.vial-completed {
-            opacity: 0.5;
-            filter: grayscale(100%);
-        }
+    .vial.vial-completed {
+      opacity: 0.5;
+      filter: grayscale(100%);
+    }
 
-        /* Legend */
-        .legend {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 4px;
-            padding-top: 6px;
-            border-top: 1px solid var(--border-color);
-            width: 100%;
-            flex-shrink: 0;
-        }
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 4px;
+      padding-top: 6px;
+      border-top: 1px solid var(--border-color);
+      width: 100%;
+      flex-shrink: 0;
+    }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 10px;
-            font-weight: 500;
-        }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      font-weight: 500;
+    }
 
-        .legend-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            border: 1px solid;
-        }
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid;
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Column 2: Statistics Card (Preparation Summary)
         ---------------------------------------------------- */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-        }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
 
-        .stat-box {
-            background: var(--bg-color);
-            padding: 10px;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
+    .stat-box {
+      background: var(--bg-color);
+      padding: 10px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
 
-        .stat-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-        }
+    .stat-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+    }
 
-        .stat-val {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--primary-color);
-        }
+    .stat-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-color);
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Column 3: Run Monitor & Queue
         ---------------------------------------------------- */
-        .progress-box {
-            background: var(--surface-color);
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-md);
-            padding: 16px;
-        }
+    .progress-box {
+      background: var(--surface-color);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
 
-        .progress-track {
-            height: 8px;
-            background: var(--bg-color);
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 12px 0;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-        }
+    .progress-track {
+      height: 8px;
+      background: var(--bg-color);
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
 
-        .progress-fill {
-            height: 100%;
-            background: var(--success-color);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
+    .progress-fill {
+      height: 100%;
+      background: var(--success-color);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
 
-        .monitor-stats {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            font-weight: 500;
-        }
+    .monitor-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 500;
+    }
 
-        /* Run Queue List */
-        .run-queue {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            flex: 1;
-            min-height: 150px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            background: var(--bg-color);
-            padding: 4px;
-        }
+    /* Run Queue List */
+    .run-queue {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+      min-height: 150px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background: var(--bg-color);
+      padding: 4px;
+    }
 
-        .queue-item {
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            padding: 8px 12px;
-            border-radius: var(--radius-md);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            box-shadow: var(--shadow-sm);
-        }
+    .queue-item {
+      background: var(--surface-color);
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      box-shadow: var(--shadow-sm);
+    }
 
-        .badge {
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
 
-        .badge.pending {
-            background: var(--bg-color);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-strong);
-        }
+    .badge.pending {
+      background: var(--bg-color);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-strong);
+    }
 
-        .badge.running {
-            background: var(--highlight-bg);
-            color: #b45309;
-            border: 1px solid #f59e0b;
-        }
+    .badge.running {
+      background: var(--highlight-bg);
+      color: #b45309;
+      border: 1px solid #f59e0b;
+    }
 
-        .badge.completed {
-            background: var(--success-bg);
-            color: var(--success-color);
-            border: 1px solid #86efac;
-        }
+    .badge.completed {
+      background: var(--success-bg);
+      color: var(--success-color);
+      border: 1px solid #86efac;
+    }
 
-        /* ----------------------------------------------------
+    /* ----------------------------------------------------
            Column 4: ChemStation Table
         ---------------------------------------------------- */
-        .table-container {
-            flex: 1;
-            overflow-y: auto;
-            overflow-x: auto;
-            border: 1px solid var(--border-strong);
-            border-radius: var(--radius-md);
-            background: var(--surface-color);
-        }
+    .table-container {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      background: var(--surface-color);
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            text-align: left;
-        }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
 
-        th {
-            position: sticky;
-            top: 0;
-            background: var(--surface-hover);
-            font-weight: 600;
-            color: var(--text-secondary);
-            padding: 8px 12px;
-            border-bottom: 2px solid var(--border-strong);
-            z-index: 1;
-        }
+    th {
+      position: sticky;
+      top: 0;
+      background: var(--surface-hover);
+      font-weight: 600;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-bottom: 2px solid var(--border-strong);
+      z-index: 1;
+    }
 
-        td {
-            padding: 8px 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
 
-        tr:nth-child(even) {
-            background: var(--surface-hover);
-        }
+    tr:nth-child(even) {
+      background: var(--surface-hover);
+    }
 
-        tr:hover {
-            background: var(--primary-light);
-        }
+    tr:hover {
+      background: var(--primary-light);
+    }
 
-        .export-actions {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 12px;
-        }
+    .export-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
 
-        .export-actions .btn {
-            flex: 1;
-            padding: 6px;
-            font-size: 11px;
-        }
+    .export-actions .btn {
+      flex: 1;
+      padding: 6px;
+      font-size: 11px;
+    }
 
-        /* Tooltips */
-        .tooltip {
-            position: absolute;
-            background: rgba(15, 23, 42, 0.9);
-            color: #fff;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            bottom: 120%;
-            left: 50%;
-            transform: translateX(-50%);
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: 0.2s;
-            z-index: 100;
-        }
+    /* Tooltips */
+    .tooltip {
+      position: absolute;
+      background: rgba(15, 23, 42, 0.9);
+      color: #fff;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.2s;
+      z-index: 100;
+    }
 
-        .vial:hover .tooltip {
-            opacity: 1;
-        }
+    .vial:hover .tooltip {
+      opacity: 1;
+    }
 
-        /* Modals */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(15, 23, 42, 0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(2px);
-        }
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      backdrop-filter: blur(2px);
+    }
 
-        .modal-content {
-            background: var(--surface-color);
-            padding: 24px;
-            border-radius: var(--radius-lg);
-            width: 90%;
-            max-width: 500px;
-            box-shadow: var(--shadow-lg);
-        }
-    </style>
+    .modal-content {
+      background: var(--surface-color);
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: var(--shadow-lg);
+    }
+  </style>
 </head>
 
-<body data-theme="dark">
+<body>
 
-    <!-- GLOBAL ENTERPRISE HEADER -->
-    <div class="global-header">
-        <div class="header-left">
-            <h1 title="HPLC Visualizer">HPLC Visualizer</h1>
+  <!-- GLOBAL ENTERPRISE HEADER -->
+  <div class="global-header">
+    <div class="header-left">
+      <h1 title="HPLC Visualizer">HPLC Visualizer</h1>
+    </div>
+    <div class="header-center">
+    </div>
+    <div class="header-right">
+      <button class="btn-header" onclick="toggleCondTimer()">Timer</button>
+      <button class="btn-header" onclick="openModal('instructions-modal')">Help</button>
+      <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
+    </div>
+  </div>
+
+  <!-- Instructions Modal -->
+  <div id="instructions-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 16px; color: var(--primary-color);">How to use this app</h3>
+      <ul style="padding-left: 20px; line-height: 1.8; margin-bottom: 24px;">
+        <li><strong>Sequence Vials:</strong> Paste your list. Use <code>* 3</code> to create replicates.</li>
+        <li><strong>Fixed Vials:</strong> Assign washes/blanks (e.g., <code>Methanol=P1:A11</code>).</li>
+        <li><strong>Dashboard:</strong> All panels update in real-time without scrolling the main window.</li>
+      </ul>
+      <div style="display:flex; justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="closeModal('instructions-modal')">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Finish Alert Modal -->
+  <div id="finish-modal" class="modal-overlay">
+    <div class="modal-content" style="text-align: center;">
+      <h2 style="color: var(--success-color); margin-bottom: 12px;">Run Finished!</h2>
+      <p>Timestamp: <span id="finish-time-display" style="font-weight: 600;"></span></p>
+      <button class="btn btn-primary" onclick="closeModal('finish-modal')" style="margin-top: 24px;">Dismiss</button>
+    </div>
+  </div>
+
+  <!-- QR Scanner Modal -->
+  <div id="qr-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 16px;">Scan QR Code</h3>
+      <div id="reader"
+        style="width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);"></div>
+      <div style="display:flex; justify-content:center; margin-top: 16px;">
+        <button class="btn btn-secondary" onclick="stopScanner()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4-COLUMN DASHBOARD -->
+  <div class="dashboard">
+
+    <!-- COLUMN 2: METHOD & SETUP -->
+    <div class="col">
+      <div class="col-header">
+        <h2>Setup</h2>
+      </div>
+      <div class="col-body">
+
+        <div id="cond-timer-box" class="card"
+          style="display:none; position:fixed; top:60px; right:20px; z-index:1000; width:250px; background:var(--surface-color); box-shadow:0 4px 12px rgba(0,0,0,0.2); border-color:var(--primary-color);">
+          <div id="cond-timer-header"
+            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:move; user-select:none;">
+            <span class="card-title" style="margin:0; color:var(--primary-color);">Timer</span>
+            <button class="btn-header" style="color:var(--text-secondary);" onclick="toggleCondTimer()">✕</button>
+          </div>
+          <div id="cond-display"
+            style="font-size:24px; text-align:center; font-family:monospace; font-weight:700; margin:8px 0; color:var(--primary-color);">
+            00:00</div>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="cond-input" value="15" style="width:60px;">
+            <button id="cond-start-btn" class="btn btn-primary" onclick="startCondTimer()"
+              style="flex:1;">Start</button>
+            <button class="btn btn-secondary" onclick="resetCondTimer()">Reset</button>
+          </div>
         </div>
-        <div class="header-center">
+
+        <div class="card">
+          <div class="card-title">Run Parameters</div>
+          <div class="input-row">
+            <div class="input-group">
+              <label>Inj. Vol (µL)</label>
+              <input type="number" id="injvol-input" value="10.0" step="0.1" oninput="updateVisualization()">
+            </div>
+            <div class="input-group">
+              <label>Run (m)</label>
+              <input type="number" id="runtime-input" value="15.0" step="0.1" oninput="updateVisualization()">
+            </div>
+            <div class="input-group">
+              <label>Delay (m)</label>
+              <input type="number" id="delay-input" value="1.0" step="0.1" oninput="updateVisualization()">
+            </div>
+          </div>
+          <div class="input-row" style="margin-bottom:0;">
+            <div class="input-group">
+              <label>Flow (mL/m)</label>
+              <input type="number" id="flowrate-input" value="1.0" step="0.1" oninput="updateVisualization()">
+            </div>
+            <div class="input-group">
+              <label>Fixed Vials (Name=Pos)</label>
+              <input type="text" id="fixed-input" value="Methanol=P1:A11" oninput="updateVisualization()">
+            </div>
+          </div>
         </div>
-        <div class="header-right">
-            <button class="btn-header" onclick="toggleCondTimer()">Timer</button>
-            <button class="btn-header" onclick="openModal('instructions-modal')">Help</button>
-            <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
+
+        <div class="card">
+          <div class="card-title">Solvents</div>
+          <div class="input-row" style="margin-bottom:0;">
+            <div class="input-group">
+              <label>Solvent A (%)</label>
+              <input type="number" id="sol-a" value="100" min="0" oninput="updateVisualization()">
+            </div>
+            <div class="input-group">
+              <label>Bottle A (mL)</label>
+              <input type="number" id="bot-a" value="1000" min="0" oninput="updateVisualization()">
+            </div>
+          </div>
+          <div class="input-row" style="margin-bottom:0; margin-top:8px;">
+            <div class="input-group">
+              <label>Solvent B (%)</label>
+              <input type="number" id="sol-b" value="0" min="0" oninput="updateVisualization()">
+            </div>
+            <div class="input-group">
+              <label>Bottle B (mL)</label>
+              <input type="number" id="bot-b" value="1000" min="0" oninput="updateVisualization()">
+            </div>
+          </div>
         </div>
+
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <div class="card-title" style="margin:0;">Sequence List</div>
+            <div style="display:flex; gap:4px;">
+              <button class="btn-secondary"
+                style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
+                onclick="startScanner()">Scan QR</button>
+              <button class="btn-secondary"
+                style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
+                onclick="document.getElementById('file-import').click()">Import</button>
+            </div>
+            <input type="file" id="file-import" style="display:none;" accept=".txt,.csv" onchange="handleImport(event)">
+          </div>
+          <textarea id="sequence-input" placeholder="Paste sample list here... (use *N for reps)"
+            oninput="updateVisualization()" style="width:100%; height: 100px;"></textarea>
+        </div>
+
+      </div>
     </div>
 
-    <!-- Instructions Modal -->
-    <div id="instructions-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 16px; color: var(--primary-color);">How to use this app</h3>
-            <ul style="padding-left: 20px; line-height: 1.8; margin-bottom: 24px;">
-                <li><strong>Sequence Vials:</strong> Paste your list. Use <code>* 3</code> to create replicates.</li>
-                <li><strong>Fixed Vials:</strong> Assign washes/blanks (e.g., <code>Methanol=P1:A11</code>).</li>
-                <li><strong>Dashboard:</strong> All panels update in real-time without scrolling the main window.</li>
-            </ul>
-            <div style="display:flex; justify-content:flex-end;">
-                <button class="btn btn-primary" onclick="closeModal('instructions-modal')">Got it</button>
-            </div>
+    <!-- COLUMN 1: PLATE LAYOUT -->
+    <div class="col" id="col-plate">
+      <div class="col-header">
+        <h2>Plate Layout</h2>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="method-label" style="font-size:12px;">Plate:</span>
+          <select id="plate-select" onchange="updateVisualization()" style="padding:2px 4px;">
+            <option value="1">Plate 1 (1-66)</option>
+            <option value="2">Plate 2 (67-132)</option>
+          </select>
         </div>
+      </div>
+      <div class="col-body">
+        <div class="plate-container">
+          <div id="plate-grid" class="plate-grid"></div>
+        </div>
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--empty-bg); border-color:var(--empty-border)">
+            </div> Empty
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--fixed-bg); border-color:var(--fixed-border)">
+            </div> Fixed
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--std-bg); border-color:var(--std-border)"></div>
+            Std
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--spike-bg); border-color:var(--spike-border)">
+            </div> Spike
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:var(--occupied-bg); border-color:var(--occupied-border)"></div>
+            Sample
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Finish Alert Modal -->
-    <div id="finish-modal" class="modal-overlay">
-        <div class="modal-content" style="text-align: center;">
-            <h2 style="color: var(--success-color); margin-bottom: 12px;">Run Finished!</h2>
-            <p>Timestamp: <span id="finish-time-display" style="font-weight: 600;"></span></p>
-            <button class="btn btn-primary" onclick="closeModal('finish-modal')"
-                style="margin-top: 24px;">Dismiss</button>
+    <!-- COLUMN 4: CHEMSTATION EXPORT -->
+    <div class="col">
+      <div class="col-header">
+        <h2>Export</h2>
+      </div>
+      <div class="col-body" style="padding-bottom:0;">
+
+        <div class="export-actions">
+          <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
+          <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
+          <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
         </div>
+
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Vial</th>
+                <th>Sample Name</th>
+              </tr>
+            </thead>
+            <tbody id="chemstation-body">
+              <!-- Rows injected via JS -->
+            </tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
 
-    <!-- QR Scanner Modal -->
-    <div id="qr-modal" class="modal-overlay">
-        <div class="modal-content">
-            <h3 style="margin-bottom: 16px;">Scan QR Code</h3>
-            <div id="reader"
-                style="width: 100%; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);"></div>
-            <div style="display:flex; justify-content:center; margin-top: 16px;">
-                <button class="btn btn-secondary" onclick="stopScanner()">Cancel</button>
+
+
+    <!-- COLUMN 3: RUN MONITOR -->
+    <div class="col">
+      <div class="col-header">
+        <h2>Run Monitor</h2>
+        <button class="btn-danger" style="font-size:11px; font-weight:600; cursor:pointer; border:none;"
+          onclick="resetProgress()">RESET</button>
+      </div>
+      <div class="col-body" style="padding-bottom:0;">
+
+        <button id="start-run-btn" class="btn btn-success" onclick="toggleRunState()">Start Run</button>
+
+        <!-- Modern Stats Card -->
+        <div class="card" style="background:var(--surface-alt); border-color:var(--border-color);">
+          <div class="card-title" style="color:var(--primary-color);">Preparation Summary</div>
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">Total Time</span>
+              <span class="stat-val" id="prep-time">0h 0m</span>
             </div>
+            <div class="stat-box">
+              <span class="stat-label">Total Volume</span>
+              <span class="stat-val" id="prep-vol">0.0 mL</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Req A / B</span>
+              <span class="stat-val" style="font-size:12px;"><span id="p-vol-a">0</span> / <span
+                  id="p-vol-b">0</span></span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">Rem A / B</span>
+              <span class="stat-val" style="font-size:12px;"><span id="p-rem-a">0</span> / <span
+                  id="p-rem-b">0</span></span>
+            </div>
+          </div>
+
+          <div
+            style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:11px; font-weight:600;">Custom Calc:</span>
+            <input type="number" id="calc-samples-input" min="0" placeholder="# Samples"
+              oninput="calculateCustomSamples()" style="width:70px; height:24px; font-size:11px; padding:2px 6px;">
+          </div>
+          <div id="calc-result"
+            style="display:none; font-size:11px; font-weight:600; margin-top:6px; color:var(--primary-color); text-align:right;">
+            Needs A: <span id="calc-req-a">0</span> | B: <span id="calc-req-b">0</span>
+          </div>
         </div>
+
+        <div class="progress-box">
+          <div class="monitor-stats">
+            <span>Progress: <span id="est-injections" style="font-weight:700;">0 / 0</span></span>
+            <span>End: <span id="est-end" style="font-weight:700;">--:--</span></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="progress-bar"></div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; font-size:11px; color:var(--text-secondary);">
+            <span id="live-clock">--:--:--</span>
+          </div>
+        </div>
+
+        <!-- Run Queue -->
+        <div class="card-title" style="margin-top:8px;">Run Queue</div>
+        <div class="run-queue" id="seq-list">
+          <!-- Queue items injected here via JS -->
+        </div>
+      </div>
     </div>
 
-    <!-- 4-COLUMN DASHBOARD -->
-    <div class="dashboard">
+  </div> <!-- end dashboard -->
 
-        <!-- COLUMN 2: METHOD & SETUP -->
-        <div class="col">
-            <div class="col-header">
-                <h2>Setup</h2>
-            </div>
-            <div class="col-body">
+  <script>
+    // Constants & Globals
+    const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
+    const COLS = 11;
+    const CACHE_KEY = 'hplcAestheticCache';
 
-                <div id="cond-timer-box" class="card"
-                    style="display:none; position:fixed; top:60px; right:20px; z-index:1000; width:250px; background:var(--surface-color); box-shadow:0 4px 12px rgba(0,0,0,0.2); border-color:var(--primary-color);">
-                    <div id="cond-timer-header"
-                        style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:move; user-select:none;">
-                        <span class="card-title" style="margin:0; color:var(--primary-color);">Timer</span>
-                        <button class="btn-header" style="color:var(--text-secondary);"
-                            onclick="toggleCondTimer()">✕</button>
-                    </div>
-                    <div id="cond-display"
-                        style="font-size:24px; text-align:center; font-family:monospace; font-weight:700; margin:8px 0; color:var(--primary-color);">
-                        00:00</div>
-                    <div style="display:flex; gap:8px;">
-                        <input type="number" id="cond-input" value="15" style="width:60px;">
-                        <button id="cond-start-btn" class="btn btn-primary" onclick="startCondTimer()"
-                            style="flex:1;">Start</button>
-                        <button class="btn btn-secondary" onclick="resetCondTimer()">Reset</button>
-                    </div>
-                </div>
+    let globalSequenceData = [];
+    let completedIndices = new Set();
+    let isRunning = false;
+    let runFinishedAlerted = false;
+    let html5QrcodeScanner;
 
-                <div class="card">
-                    <div class="card-title">Run Parameters</div>
-                    <div class="input-row">
-                        <div class="input-group">
-                            <label>Inj. Vol (µL)</label>
-                            <input type="number" id="injvol-input" value="10.0" step="0.1"
-                                oninput="updateVisualization()">
-                        </div>
-                        <div class="input-group">
-                            <label>Run (m)</label>
-                            <input type="number" id="runtime-input" value="15.0" step="0.1"
-                                oninput="updateVisualization()">
-                        </div>
-                        <div class="input-group">
-                            <label>Delay (m)</label>
-                            <input type="number" id="delay-input" value="1.0" step="0.1"
-                                oninput="updateVisualization()">
-                        </div>
-                    </div>
-                    <div class="input-row" style="margin-bottom:0;">
-                        <div class="input-group">
-                            <label>Flow (mL/m)</label>
-                            <input type="number" id="flowrate-input" value="1.0" step="0.1"
-                                oninput="updateVisualization()">
-                        </div>
-                        <div class="input-group">
-                            <label>Fixed Vials (Name=Pos)</label>
-                            <input type="text" id="fixed-input" value="Methanol=P1:A11" oninput="updateVisualization()">
-                        </div>
-                    </div>
-                </div>
+    // --- Tab Switching Logic ---
+    function switchTab(tabId) {
+      // Update nav buttons
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-btn-' + tabId).classList.add('active');
 
-                <div class="card">
-                    <div class="card-title">Solvents</div>
-                    <div class="input-row" style="margin-bottom:0;">
-                        <div class="input-group">
-                            <label>Solvent A (%)</label>
-                            <input type="number" id="sol-a" value="100" min="0" oninput="updateVisualization()">
-                        </div>
-                        <div class="input-group">
-                            <label>Bottle A (mL)</label>
-                            <input type="number" id="bot-a" value="1000" min="0" oninput="updateVisualization()">
-                        </div>
-                    </div>
-                    <div class="input-row" style="margin-bottom:0; margin-top:8px;">
-                        <div class="input-group">
-                            <label>Solvent B (%)</label>
-                            <input type="number" id="sol-b" value="0" min="0" oninput="updateVisualization()">
-                        </div>
-                        <div class="input-group">
-                            <label>Bottle B (mL)</label>
-                            <input type="number" id="bot-b" value="1000" min="0" oninput="updateVisualization()">
-                        </div>
-                    </div>
-                </div>
+      // Update tab content visibility
+      document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+      document.getElementById('tab-' + tabId).classList.add('active');
 
-                <div class="card">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                        <div class="card-title" style="margin:0;">Sequence List</div>
-                        <div style="display:flex; gap:4px;">
-                            <button class="btn-secondary"
-                                style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
-                                onclick="startScanner()">Scan QR</button>
-                            <button class="btn-secondary"
-                                style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
-                                onclick="document.getElementById('file-import').click()">Import</button>
-                        </div>
-                        <input type="file" id="file-import" style="display:none;" accept=".txt,.csv"
-                            onchange="handleImport(event)">
-                    </div>
-                    <textarea id="sequence-input" placeholder="Paste sample list here... (use *N for reps)"
-                        oninput="updateVisualization()" style="width:100%; height: 100px;"></textarea>
-                </div>
-
-            </div>
-        </div>
-
-        <!-- COLUMN 1: PLATE LAYOUT -->
-        <div class="col" id="col-plate">
-            <div class="col-header">
-                <h2>Plate Layout</h2>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <span class="method-label" style="font-size:12px;">Plate:</span>
-                    <select id="plate-select" onchange="updateVisualization()" style="padding:2px 4px;">
-                        <option value="1">Plate 1 (1-66)</option>
-                        <option value="2">Plate 2 (67-132)</option>
-                    </select>
-                </div>
-            </div>
-            <div class="col-body">
-                <div class="plate-container">
-                    <div id="plate-grid" class="plate-grid"></div>
-                </div>
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--empty-bg); border-color:var(--empty-border)">
-                        </div> Empty
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--fixed-bg); border-color:var(--fixed-border)">
-                        </div> Fixed
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--std-bg); border-color:var(--std-border)"></div>
-                        Std
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot" style="background:var(--spike-bg); border-color:var(--spike-border)">
-                        </div> Spike
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-dot"
-                            style="background:var(--occupied-bg); border-color:var(--occupied-border)"></div> Sample
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- COLUMN 4: CHEMSTATION EXPORT -->
-        <div class="col">
-            <div class="col-header">
-                <h2>Export</h2>
-            </div>
-            <div class="col-body" style="padding-bottom:0;">
-
-                <div class="export-actions">
-                    <button class="btn btn-secondary" onclick="copyChemStationData('location')">Copy Vials</button>
-                    <button class="btn btn-secondary" onclick="copyChemStationData('name')">Copy Names</button>
-                    <button class="btn btn-secondary" onclick="downloadCSV()">CSV</button>
-                </div>
-
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Vial</th>
-                                <th>Sample Name</th>
-                            </tr>
-                        </thead>
-                        <tbody id="chemstation-body">
-                            <!-- Rows injected via JS -->
-                        </tbody>
-                    </table>
-                </div>
-
-            </div>
-        </div>
+      // Re-render things that might be hidden
+      if (tabId === 1) {
+        // Ensure grid renders correctly after display block
+        const cachedMap = window._lastVialMap || {};
+        const cachedQuery = window._lastSearchQuery || "";
+        updateGridHighlights(cachedMap, cachedQuery);
+      }
+    }
 
 
+    // --- Conditioning Timer ---
+    let condInterval = null;
+    let condRemaining = 0;
+    let condIsRunning = false;
 
-        <!-- COLUMN 3: RUN MONITOR -->
-        <div class="col">
-            <div class="col-header">
-                <h2>Run Monitor</h2>
-                <button class="btn-danger" style="font-size:11px; font-weight:600; cursor:pointer; border:none;"
-                    onclick="resetProgress()">RESET</button>
-            </div>
-            <div class="col-body" style="padding-bottom:0;">
+    function toggleCondTimer() {
+      const box = document.getElementById('cond-timer-box');
+      box.style.display = box.style.display === 'block' ? 'none' : 'block';
+    }
 
-                <button id="start-run-btn" class="btn btn-success" onclick="toggleRunState()">Start Run</button>
-
-                <!-- Modern Stats Card -->
-                <div class="card" style="background:var(--surface-alt); border-color:var(--border-color);">
-                    <div class="card-title" style="color:var(--primary-color);">Preparation Summary</div>
-                    <div class="stats-grid">
-                        <div class="stat-box">
-                            <span class="stat-label">Total Time</span>
-                            <span class="stat-val" id="prep-time">0h 0m</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">Total Volume</span>
-                            <span class="stat-val" id="prep-vol">0.0 mL</span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">Req A / B</span>
-                            <span class="stat-val" style="font-size:12px;"><span id="p-vol-a">0</span> / <span
-                                    id="p-vol-b">0</span></span>
-                        </div>
-                        <div class="stat-box">
-                            <span class="stat-label">Rem A / B</span>
-                            <span class="stat-val" style="font-size:12px;"><span id="p-rem-a">0</span> / <span
-                                    id="p-rem-b">0</span></span>
-                        </div>
-                    </div>
-
-                    <div
-                        style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:11px; font-weight:600;">Custom Calc:</span>
-                        <input type="number" id="calc-samples-input" min="0" placeholder="# Samples"
-                            oninput="calculateCustomSamples()"
-                            style="width:70px; height:24px; font-size:11px; padding:2px 6px;">
-                    </div>
-                    <div id="calc-result"
-                        style="display:none; font-size:11px; font-weight:600; margin-top:6px; color:var(--primary-color); text-align:right;">
-                        Needs A: <span id="calc-req-a">0</span> | B: <span id="calc-req-b">0</span>
-                    </div>
-                </div>
-
-                <div class="progress-box">
-                    <div class="monitor-stats">
-                        <span>Progress: <span id="est-injections" style="font-weight:700;">0 / 0</span></span>
-                        <span>End: <span id="est-end" style="font-weight:700;">--:--</span></span>
-                    </div>
-                    <div class="progress-track">
-                        <div class="progress-fill" id="progress-bar"></div>
-                    </div>
-                    <div
-                        style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-secondary);">
-                        <span>Start: <input type="time" id="start-time-input" onchange="calculateEstimates()"
-                                style="border:none; background:transparent; font-size:11px; font-weight:600; padding:0; height:auto;"></span>
-                        <span id="live-clock">--:--:--</span>
-                    </div>
-                </div>
-
-                <!-- Run Queue -->
-                <div class="card-title" style="margin-top:8px;">Run Queue</div>
-                <div class="run-queue" id="seq-list">
-                    <!-- Queue items injected here via JS -->
-                </div>
-            </div>
-        </div>
-
-    </div> <!-- end dashboard -->
-
-    <script>
-        // Constants & Globals
-        const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
-        const COLS = 11;
-        const CACHE_KEY = 'hplcAestheticCache';
-
-        let globalSequenceData = [];
-        let completedIndices = new Set();
-        let isRunning = false;
-        let runFinishedAlerted = false;
-        let html5QrcodeScanner;
-
-        // --- Tab Switching Logic ---
-        function switchTab(tabId) {
-            // Update nav buttons
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-btn-' + tabId).classList.add('active');
-
-            // Update tab content visibility
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-
-            // Re-render things that might be hidden
-            if (tabId === 1) {
-                // Ensure grid renders correctly after display block
-                const cachedMap = window._lastVialMap || {};
-                const cachedQuery = window._lastSearchQuery || "";
-                updateGridHighlights(cachedMap, cachedQuery);
-            }
+    function startCondTimer() {
+      const btn = document.getElementById('cond-start-btn');
+      if (condIsRunning) {
+        clearInterval(condInterval);
+        condIsRunning = false;
+        btn.innerText = 'START';
+        btn.classList.replace('btn-warning', 'btn-primary');
+      } else {
+        if (condRemaining <= 0) {
+          const mins = parseFloat(document.getElementById('cond-input').value) || 0;
+          condRemaining = Math.floor(mins * 60);
         }
-
-
-        // --- Conditioning Timer ---
-        let condInterval = null;
-        let condRemaining = 0;
-        let condIsRunning = false;
-
-        function toggleCondTimer() {
-            const box = document.getElementById('cond-timer-box');
-            box.style.display = box.style.display === 'block' ? 'none' : 'block';
+        if (condRemaining > 0) {
+          condIsRunning = true;
+          btn.innerText = 'PAUSE';
+          btn.classList.replace('btn-primary', 'btn-warning');
+          condInterval = setInterval(tickCondTimer, 1000);
+          tickCondTimer();
         }
+      }
+    }
 
-        function startCondTimer() {
-            const btn = document.getElementById('cond-start-btn');
-            if (condIsRunning) {
-                clearInterval(condInterval);
-                condIsRunning = false;
-                btn.innerText = 'START';
-                btn.classList.replace('btn-warning', 'btn-primary');
-            } else {
-                if (condRemaining <= 0) {
-                    const mins = parseFloat(document.getElementById('cond-input').value) || 0;
-                    condRemaining = Math.floor(mins * 60);
-                }
-                if (condRemaining > 0) {
-                    condIsRunning = true;
-                    btn.innerText = 'PAUSE';
-                    btn.classList.replace('btn-primary', 'btn-warning');
-                    condInterval = setInterval(tickCondTimer, 1000);
-                    tickCondTimer();
-                }
-            }
-        }
+    function tickCondTimer() {
+      if (condRemaining <= 0) {
+        clearInterval(condInterval);
+        condIsRunning = false;
+        const btn = document.getElementById('cond-start-btn');
+        btn.innerText = 'START';
+        btn.classList.replace('btn-warning', 'btn-primary');
 
-        function tickCondTimer() {
-            if (condRemaining <= 0) {
-                clearInterval(condInterval);
-                condIsRunning = false;
-                const btn = document.getElementById('cond-start-btn');
-                btn.innerText = 'START';
-                btn.classList.replace('btn-warning', 'btn-primary');
+        // Audio Beep
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+        oscillator.connect(audioCtx.destination);
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.5);
 
-                // Audio Beep
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioCtx.createOscillator();
-                oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-                oscillator.connect(audioCtx.destination);
-                oscillator.start();
-                oscillator.stop(audioCtx.currentTime + 0.5);
+        alert("Timer Finished!");
+        return;
+      }
+      condRemaining--;
+      const m = Math.floor(condRemaining / 60).toString().padStart(2, '0');
+      const s = (condRemaining % 60).toString().padStart(2, '0');
+      document.getElementById('cond-display').innerText = `${m}:${s}`;
+    }
 
-                alert("Timer Finished!");
-                return;
-            }
-            condRemaining--;
-            const m = Math.floor(condRemaining / 60).toString().padStart(2, '0');
-            const s = (condRemaining % 60).toString().padStart(2, '0');
-            document.getElementById('cond-display').innerText = `${m}:${s}`;
-        }
+    function resetCondTimer() {
+      clearInterval(condInterval);
+      condIsRunning = false;
+      condRemaining = 0;
+      const btn = document.getElementById('cond-start-btn');
+      btn.innerText = 'START';
+      btn.classList.remove('btn-warning');
+      btn.classList.add('btn-primary');
+      document.getElementById('cond-display').innerText = '00:00';
+    }
 
-        function resetCondTimer() {
-            clearInterval(condInterval);
-            condIsRunning = false;
-            condRemaining = 0;
-            const btn = document.getElementById('cond-start-btn');
-            btn.innerText = 'START';
-            btn.classList.remove('btn-warning');
-            btn.classList.add('btn-primary');
-            document.getElementById('cond-display').innerText = '00:00';
-        }
+    // --- Modal & Theme Logic ---
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-        // --- Modal & Theme Logic ---
-        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    function toggleDarkMode() {
+      const body = document.body;
+      if (body.getAttribute('data-theme') !== 'light') {
+        body.setAttribute('data-theme', 'light');
+        localStorage.setItem('theme', 'light');
+      } else {
+        body.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'dark');
+      }
+    }
 
-        function toggleDarkMode() {
-            const body = document.body;
-            if (body.getAttribute('data-theme') === 'dark') {
-                body.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light');
-            } else {
-                body.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-            }
-        }
+    // --- State Management ---
+    function saveToCache() {
+      const cacheData = {
+        plate: document.getElementById('plate-select').value,
+        injvol: document.getElementById('injvol-input').value,
+        runtime: document.getElementById('runtime-input').value,
+        delay: document.getElementById('delay-input').value,
+        flowrate: document.getElementById('flowrate-input').value,
+        sola: document.getElementById('sol-a').value,
+        solb: document.getElementById('sol-b').value,
+        solc: document.getElementById('sol-c').value,
+        sold: document.getElementById('sol-d').value,
+        search: document.getElementById('search-input').value,
+        fixed: document.getElementById('fixed-input').value,
+        sequence: document.getElementById('sequence-input').value,
+        completed: Array.from(completedIndices),
+        running: isRunning
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+    }
 
-        // --- State Management ---
-        function saveToCache() {
-            const cacheData = {
-                plate: document.getElementById('plate-select').value,
-                injvol: document.getElementById('injvol-input').value,
-                runtime: document.getElementById('runtime-input').value,
-                delay: document.getElementById('delay-input').value,
-                flowrate: document.getElementById('flowrate-input').value,
-                sola: document.getElementById('sol-a').value,
-                solb: document.getElementById('sol-b').value,
-                solc: document.getElementById('sol-c').value,
-                sold: document.getElementById('sol-d').value,
-                search: document.getElementById('search-input').value,
-                fixed: document.getElementById('fixed-input').value,
-                sequence: document.getElementById('sequence-input').value,
-                completed: Array.from(completedIndices),
-                running: isRunning
-            };
-            localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
-        }
+    function loadFromCache() {
+      if (localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+      else document.body.removeAttribute('data-theme');
+      const cachedStr = localStorage.getItem(CACHE_KEY);
+      if (cachedStr) {
+        try {
+          const c = JSON.parse(cachedStr);
+          if (c.plate) document.getElementById('plate-select').value = c.plate;
+          if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
+          if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
+          if (c.delay !== undefined) document.getElementById('delay-input').value = c.delay;
+          if (c.flowrate !== undefined) document.getElementById('flowrate-input').value = c.flowrate;
+          if (c.sola !== undefined) document.getElementById('sol-a').value = c.sola;
+          if (c.solb !== undefined) document.getElementById('sol-b').value = c.solb;
+          if (c.solc !== undefined) document.getElementById('sol-c').value = c.solc;
+          if (c.sold !== undefined) document.getElementById('sol-d').value = c.sold;
+          if (c.search !== undefined) document.getElementById('search-input').value = c.search;
+          if (c.fixed !== undefined) document.getElementById('fixed-input').value = c.fixed;
+          if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
+          if (c.completed) completedIndices = new Set(c.completed);
+          if (c.running === true) { isRunning = false; toggleRunState(); }
+        } catch (e) { console.error('Cache error', e); }
+      }
+    }
 
-        function loadFromCache() {
-            if (localStorage.getItem('theme') === 'light') document.body.removeAttribute('data-theme');
-            else document.body.setAttribute('data-theme', 'dark');
-            const cachedStr = localStorage.getItem(CACHE_KEY);
-            if (cachedStr) {
-                try {
-                    const c = JSON.parse(cachedStr);
-                    if (c.plate) document.getElementById('plate-select').value = c.plate;
-                    if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
-                    if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
-                    if (c.delay !== undefined) document.getElementById('delay-input').value = c.delay;
-                    if (c.flowrate !== undefined) document.getElementById('flowrate-input').value = c.flowrate;
-                    if (c.sola !== undefined) document.getElementById('sol-a').value = c.sola;
-                    if (c.solb !== undefined) document.getElementById('sol-b').value = c.solb;
-                    if (c.solc !== undefined) document.getElementById('sol-c').value = c.solc;
-                    if (c.sold !== undefined) document.getElementById('sol-d').value = c.sold;
-                    if (c.search !== undefined) document.getElementById('search-input').value = c.search;
-                    if (c.fixed !== undefined) document.getElementById('fixed-input').value = c.fixed;
-                    if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
-                    if (c.completed) completedIndices = new Set(c.completed);
-                    if (c.running === true) { isRunning = false; toggleRunState(); }
-                } catch (e) { console.error('Cache error', e); }
-            }
-        }
+    function createBoard() {
+      const grid = document.getElementById('plate-grid');
+      grid.innerHTML = '';
 
-        function createBoard() {
-            const grid = document.getElementById('plate-grid');
-            grid.innerHTML = '';
+      for (let c = COLS; c >= 1; c--) {
+        const rowHeader = document.createElement('div');
+        rowHeader.className = 'header-label'; rowHeader.innerText = c;
+        grid.appendChild(rowHeader);
 
-            for (let c = COLS; c >= 1; c--) {
-                const rowHeader = document.createElement('div');
-                rowHeader.className = 'header-label'; rowHeader.innerText = c;
-                grid.appendChild(rowHeader);
-
-                ROWS.forEach(row => {
-                    const vialId = `${row}${c}`;
-                    const vial = document.createElement('div');
-                    vial.className = 'vial'; vial.id = `vial-${vialId}`;
-                    vial.innerHTML = `<span>${row}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
-                    grid.appendChild(vial);
-                });
-            }
-
-            grid.appendChild(document.createElement('div'));
-            ROWS.forEach(row => {
-                const header = document.createElement('div');
-                header.className = 'header-label'; header.innerText = row;
-                grid.appendChild(header);
-            });
-        }
-
-        // --- Run Control ---
-        function toggleRunState() {
-            isRunning = !isRunning;
-            const btn = document.getElementById('start-run-btn');
-            if (isRunning) {
-                btn.innerHTML = 'Pause Run';
-                btn.classList.replace('btn-success', 'btn-warning');
-                runFinishedAlerted = false;
-            } else {
-                btn.innerHTML = 'Start Run';
-                btn.classList.replace('btn-warning', 'btn-success');
-            }
-            saveToCache();
-        }
-
-        function toggleCompletion(index) {
-            if (completedIndices.has(index)) completedIndices.delete(index);
-            else completedIndices.add(index);
-            updateVisualization();
-            saveToCache();
-        }
-
-        // --- Draggable Timer Logic ---
-        const timerBox = document.getElementById('cond-timer-box');
-        const timerHeader = document.getElementById('cond-timer-header');
-
-        let isDragging = false;
-        let dragOffsetX = 0;
-        let dragOffsetY = 0;
-
-        timerHeader.addEventListener('mousedown', (e) => {
-            isDragging = true;
-            const rect = timerBox.getBoundingClientRect();
-            dragOffsetX = e.clientX - rect.left;
-            dragOffsetY = e.clientY - rect.top;
+        ROWS.forEach(row => {
+          const vialId = `${row}${c}`;
+          const vial = document.createElement('div');
+          vial.className = 'vial'; vial.id = `vial-${vialId}`;
+          vial.innerHTML = `<span>${row}</span><div class="tooltip" id="tooltip-${vialId}">${vialId}: Empty</div>`;
+          grid.appendChild(vial);
         });
+      }
 
-        document.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            timerBox.style.left = (e.clientX - dragOffsetX) + 'px';
-            timerBox.style.top = (e.clientY - dragOffsetY) + 'px';
-            timerBox.style.right = 'auto'; // Release right anchor
-        });
+      grid.appendChild(document.createElement('div'));
+      ROWS.forEach(row => {
+        const header = document.createElement('div');
+        header.className = 'header-label'; header.innerText = row;
+        grid.appendChild(header);
+      });
+    }
 
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-        });
+    // --- Run Control ---
+    function toggleRunState() {
+      isRunning = !isRunning;
+      const btn = document.getElementById('start-run-btn');
+      if (isRunning) {
+        btn.innerHTML = 'Pause Run';
+        btn.classList.replace('btn-success', 'btn-warning');
+        runFinishedAlerted = false;
+      } else {
+        btn.innerHTML = 'Start Run';
+        btn.classList.replace('btn-warning', 'btn-success');
+      }
+      saveToCache();
+    }
 
-        createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
+    function toggleCompletion(index) {
+      if (completedIndices.has(index)) completedIndices.delete(index);
+      else completedIndices.add(index);
+      updateVisualization();
+      saveToCache();
+    }
 
-        function resetProgress() {
-            if (confirm("Reset all checkmarks?")) {
-                completedIndices.clear();
-                runFinishedAlerted = false;
-                if (isRunning) toggleRunState();
-                updateVisualization();
-            }
+    // --- Draggable Timer Logic ---
+    const timerBox = document.getElementById('cond-timer-box');
+    const timerHeader = document.getElementById('cond-timer-header');
+
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+
+    timerHeader.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      const rect = timerBox.getBoundingClientRect();
+      dragOffsetX = e.clientX - rect.left;
+      dragOffsetY = e.clientY - rect.top;
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      timerBox.style.left = (e.clientX - dragOffsetX) + 'px';
+      timerBox.style.top = (e.clientY - dragOffsetY) + 'px';
+      timerBox.style.right = 'auto'; // Release right anchor
+    });
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
+
+    function resetProgress() {
+      if (confirm("Reset all checkmarks?")) {
+        completedIndices.clear();
+        runFinishedAlerted = false;
+        if (isRunning) toggleRunState();
+        updateVisualization();
+      }
+    }
+
+    // --- Core Logic ---
+    function parseFixedVials() {
+      const rawFixed = document.getElementById('fixed-input').value;
+      const fixedMap = {};
+      rawFixed.split(',').forEach(item => {
+        const parts = item.split('=').map(s => s.trim());
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const name = parts[0].toLowerCase();
+          let pos = parts[1].toUpperCase();
+          let plate = 1;
+          if (pos.includes(':')) {
+            const posParts = pos.split(':');
+            plate = parseInt(posParts[0].replace('P', '')) || 1;
+            pos = posParts[1];
+          }
+          fixedMap[name] = { plate, pos, originalName: parts[0] };
+        }
+      });
+      return fixedMap;
+    }
+
+    function updateVisualization() {
+      const selectedPlate = parseInt(document.getElementById('plate-select').value);
+      const rawText = document.getElementById('sequence-input').value;
+      const searchEl = document.getElementById('search-input');
+      const searchQuery = searchEl ? searchEl.value.trim().toLowerCase() : '';
+
+      const seqListEl = document.getElementById('seq-list');
+      const tbody = document.getElementById('chemstation-body');
+      const currentScroll = seqListEl.scrollTop;
+
+      const fixedMap = parseFixedVials();
+      const reservedPositions = new Set();
+      Object.values(fixedMap).forEach(f => reservedPositions.add(`P${f.plate}:${f.pos}`));
+
+      let expandedSamples = [];
+      rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0).forEach(line => {
+        const match = line.match(/^(.*?)\s*[\*xX]\s*(\d+)$/);
+        if (match) {
+          for (let i = 0; i < parseInt(match[2], 10); i++) expandedSamples.push(match[1].trim());
+        } else expandedSamples.push(line);
+      });
+
+      // Cleanup orphan checkboxes
+      const validIndices = new Set();
+      completedIndices.forEach(idx => { if (idx < expandedSamples.length) validIndices.add(idx); });
+      completedIndices = validIndices;
+
+      const positionsPerPlate = ROWS.length * COLS;
+      const vialMap = {}; const dynamicVialMap = {};
+
+      seqListEl.innerHTML = ''; tbody.innerHTML = '';
+      globalSequenceData = [];
+      let nextAutoIndex = 0;
+
+      expandedSamples.forEach((sampleName, index) => {
+        const lowerName = sampleName.toLowerCase();
+        let samplePlate, samplePos, isFixed = false;
+
+        if (fixedMap[lowerName]) {
+          samplePlate = fixedMap[lowerName].plate; samplePos = fixedMap[lowerName].pos; isFixed = true;
+        } else if (dynamicVialMap[lowerName]) {
+          samplePlate = dynamicVialMap[lowerName].plate; samplePos = dynamicVialMap[lowerName].pos;
+        } else {
+          let foundSpot = false;
+          while (!foundSpot) {
+            samplePlate = Math.floor(nextAutoIndex / positionsPerPlate) + 1;
+            const localIndex = nextAutoIndex % positionsPerPlate;
+            samplePos = `${ROWS[Math.floor(localIndex / COLS)]}${(localIndex % COLS) + 1}`;
+            if (reservedPositions.has(`P${samplePlate}:${samplePos}`)) nextAutoIndex++;
+            else foundSpot = true;
+          }
+          dynamicVialMap[lowerName] = { plate: samplePlate, pos: samplePos };
+          nextAutoIndex++;
         }
 
-        // --- Core Logic ---
-        function parseFixedVials() {
-            const rawFixed = document.getElementById('fixed-input').value;
-            const fixedMap = {};
-            rawFixed.split(',').forEach(item => {
-                const parts = item.split('=').map(s => s.trim());
-                if (parts.length === 2 && parts[0] && parts[1]) {
-                    const name = parts[0].toLowerCase();
-                    let pos = parts[1].toUpperCase();
-                    let plate = 1;
-                    if (pos.includes(':')) {
-                        const posParts = pos.split(':');
-                        plate = parseInt(posParts[0].replace('P', '')) || 1;
-                        pos = posParts[1];
-                    }
-                    fixedMap[name] = { plate, pos, originalName: parts[0] };
-                }
-            });
-            return fixedMap;
+        const fullLocation = `P${samplePlate}:${samplePos}`;
+        const csVialLocation = `P${samplePlate}-${samplePos}`;
+        const isCompleted = completedIndices.has(index);
+
+        globalSequenceData.push({ location: csVialLocation, name: sampleName });
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${index + 1}</td><td>${csVialLocation}</td><td>${sampleName}</td>`;
+        tbody.appendChild(tr);
+
+        if (samplePlate === selectedPlate) {
+          if (!vialMap[samplePos]) vialMap[samplePos] = { name: sampleName, seqNums: [index + 1], isFixed };
+          else vialMap[samplePos].seqNums.push(index + 1);
         }
 
-        function updateVisualization() {
-            const selectedPlate = parseInt(document.getElementById('plate-select').value);
-            const rawText = document.getElementById('sequence-input').value;
-            const searchEl = document.getElementById('search-input');
-            const searchQuery = searchEl ? searchEl.value.trim().toLowerCase() : '';
+        let badgeClass = 'pending';
+        let badgeText = 'Pending';
+        if (isCompleted) {
+          badgeClass = 'completed';
+          badgeText = 'Completed';
+        } else if (isRunning && index === completedIndices.size) {
+          badgeClass = 'running';
+          badgeText = 'Running';
+        }
 
-            const seqListEl = document.getElementById('seq-list');
-            const tbody = document.getElementById('chemstation-body');
-            const currentScroll = seqListEl.scrollTop;
+        let typeHtml = isFixed ? '<span style="font-size:10px; color:var(--text-muted); margin-left:4px;">(Fixed)</span>' : '';
+        if (!isFixed) {
+          if (lowerName.includes('spike')) typeHtml = '<span style="color:var(--spike-border); font-size:10px; margin-left:4px;">[Spike]</span>';
+          else if (lowerName.includes('std') || lowerName.includes('cal')) typeHtml = '<span style="color:var(--std-border); font-size:10px; margin-left:4px;">[Std]</span>';
+        }
 
-            const fixedMap = parseFixedVials();
-            const reservedPositions = new Set();
-            Object.values(fixedMap).forEach(f => reservedPositions.add(`P${f.plate}:${f.pos}`));
+        const listItem = document.createElement('div');
+        listItem.className = 'queue-item';
+        if (searchQuery && (sampleName.toLowerCase().includes(searchQuery) || samplePos.toLowerCase().includes(searchQuery))) {
+          listItem.style.borderColor = 'var(--highlight-border)';
+        }
 
-            let expandedSamples = [];
-            rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0).forEach(line => {
-                const match = line.match(/^(.*?)\s*[\*xX]\s*(\d+)$/);
-                if (match) {
-                    for (let i = 0; i < parseInt(match[2], 10); i++) expandedSamples.push(match[1].trim());
-                } else expandedSamples.push(line);
-            });
-
-            // Cleanup orphan checkboxes
-            const validIndices = new Set();
-            completedIndices.forEach(idx => { if (idx < expandedSamples.length) validIndices.add(idx); });
-            completedIndices = validIndices;
-
-            const positionsPerPlate = ROWS.length * COLS;
-            const vialMap = {}; const dynamicVialMap = {};
-
-            seqListEl.innerHTML = ''; tbody.innerHTML = '';
-            globalSequenceData = [];
-            let nextAutoIndex = 0;
-
-            expandedSamples.forEach((sampleName, index) => {
-                const lowerName = sampleName.toLowerCase();
-                let samplePlate, samplePos, isFixed = false;
-
-                if (fixedMap[lowerName]) {
-                    samplePlate = fixedMap[lowerName].plate; samplePos = fixedMap[lowerName].pos; isFixed = true;
-                } else if (dynamicVialMap[lowerName]) {
-                    samplePlate = dynamicVialMap[lowerName].plate; samplePos = dynamicVialMap[lowerName].pos;
-                } else {
-                    let foundSpot = false;
-                    while (!foundSpot) {
-                        samplePlate = Math.floor(nextAutoIndex / positionsPerPlate) + 1;
-                        const localIndex = nextAutoIndex % positionsPerPlate;
-                        samplePos = `${ROWS[Math.floor(localIndex / COLS)]}${(localIndex % COLS) + 1}`;
-                        if (reservedPositions.has(`P${samplePlate}:${samplePos}`)) nextAutoIndex++;
-                        else foundSpot = true;
-                    }
-                    dynamicVialMap[lowerName] = { plate: samplePlate, pos: samplePos };
-                    nextAutoIndex++;
-                }
-
-                const fullLocation = `P${samplePlate}:${samplePos}`;
-                const csVialLocation = `P${samplePlate}-${samplePos}`;
-                const isCompleted = completedIndices.has(index);
-
-                globalSequenceData.push({ location: csVialLocation, name: sampleName });
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${index + 1}</td><td>${csVialLocation}</td><td>${sampleName}</td>`;
-                tbody.appendChild(tr);
-
-                if (samplePlate === selectedPlate) {
-                    if (!vialMap[samplePos]) vialMap[samplePos] = { name: sampleName, seqNums: [index + 1], isFixed };
-                    else vialMap[samplePos].seqNums.push(index + 1);
-                }
-
-                let badgeClass = 'pending';
-                let badgeText = 'Pending';
-                if (isCompleted) {
-                    badgeClass = 'completed';
-                    badgeText = 'Completed';
-                } else if (isRunning && index === completedIndices.size) {
-                    badgeClass = 'running';
-                    badgeText = 'Running';
-                }
-
-                let typeHtml = isFixed ? '<span style="font-size:10px; color:var(--text-muted); margin-left:4px;">(Fixed)</span>' : '';
-                if (!isFixed) {
-                    if (lowerName.includes('spike')) typeHtml = '<span style="color:var(--spike-border); font-size:10px; margin-left:4px;">[Spike]</span>';
-                    else if (lowerName.includes('std') || lowerName.includes('cal')) typeHtml = '<span style="color:var(--std-border); font-size:10px; margin-left:4px;">[Std]</span>';
-                }
-
-                const listItem = document.createElement('div');
-                listItem.className = 'queue-item';
-                if (searchQuery && (sampleName.toLowerCase().includes(searchQuery) || samplePos.toLowerCase().includes(searchQuery))) {
-                    listItem.style.borderColor = 'var(--highlight-border)';
-                }
-
-                listItem.innerHTML = `
+        listItem.innerHTML = `
                   <div style="display:flex; align-items:center; gap:8px;">
                     <input type="checkbox" style="width:14px; height:14px; margin:0;" ${isCompleted ? 'checked' : ''}>
                     <span style="font-weight:600; width:35px;">${fullLocation}</span>
@@ -1480,256 +1502,246 @@
                   <span class="badge ${badgeClass}">${badgeText}</span>
                 `;
 
-                listItem.onclick = (e) => { if (e.target.type !== 'checkbox') toggleCompletion(index); };
-                listItem.querySelector('input').onchange = () => toggleCompletion(index);
-                listItem.onmouseenter = () => { if (samplePlate === selectedPlate) document.getElementById(`vial-${samplePos}`)?.classList.add('highlighted'); };
-                listItem.onmouseleave = () => window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
+        listItem.onclick = (e) => { if (e.target.type !== 'checkbox') toggleCompletion(index); };
+        listItem.querySelector('input').onchange = () => toggleCompletion(index);
+        listItem.onmouseenter = () => { if (samplePlate === selectedPlate) document.getElementById(`vial-${samplePos}`)?.classList.add('highlighted'); };
+        listItem.onmouseleave = () => window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
 
-                seqListEl.appendChild(listItem);
-            });
+        seqListEl.appendChild(listItem);
+      });
 
-            window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
-            calculateEstimates();
+      window._lastVialMap = vialMap; window._lastSearchQuery = searchQuery; updateGridHighlights(vialMap, searchQuery);
+      calculateEstimates();
 
-            if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
-                if (isRunning && !runFinishedAlerted) {
-                    document.getElementById('finish-time-display').innerText = new Date().toLocaleTimeString();
-                    openModal('finish-modal');
-                    runFinishedAlerted = true;
-                    toggleRunState();
-                }
-            } else {
-                runFinishedAlerted = false;
-            }
-
-            saveToCache();
-            seqListEl.scrollTop = currentScroll;
+      if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
+        if (isRunning && !runFinishedAlerted) {
+          document.getElementById('finish-time-display').innerText = new Date().toLocaleTimeString();
+          openModal('finish-modal');
+          runFinishedAlerted = true;
+          toggleRunState();
         }
+      } else {
+        runFinishedAlerted = false;
+      }
 
-        function updateGridHighlights(vialMap, searchQuery) {
-            ROWS.forEach(row => {
-                for (let c = 1; c <= COLS; c++) {
-                    const pos = `${row}${c}`;
-                    const vialEl = document.getElementById(`vial-${pos}`);
-                    const tooltipEl = document.getElementById(`tooltip-${pos}`);
-                    const data = vialMap[pos];
+      saveToCache();
+      seqListEl.scrollTop = currentScroll;
+    }
 
-                    vialEl.className = 'vial';
+    function updateGridHighlights(vialMap, searchQuery) {
+      ROWS.forEach(row => {
+        for (let c = 1; c <= COLS; c++) {
+          const pos = `${row}${c}`;
+          const vialEl = document.getElementById(`vial-${pos}`);
+          const tooltipEl = document.getElementById(`tooltip-${pos}`);
+          const data = vialMap[pos];
 
-                    if (data) {
-                        const allCompleted = data.seqNums.every(n => completedIndices.has(n - 1));
+          vialEl.className = 'vial';
 
-                        if (data.isFixed) vialEl.classList.add('fixed');
-                        else {
-                            const lowerName = data.name.toLowerCase();
-                            if (lowerName.includes('spike')) vialEl.classList.add('spike');
-                            else if (lowerName.includes('std') || lowerName.includes('cal')) vialEl.classList.add('std');
-                            else vialEl.classList.add('occupied');
-                        }
-                        if (allCompleted) vialEl.classList.add('vial-completed');
+          if (data) {
+            const allCompleted = data.seqNums.every(n => completedIndices.has(n - 1));
 
-                        tooltipEl.innerText = `${pos}: ${data.name} (${data.seqNums.map(n => `#${n}`).join(', ')})`;
-                        if (searchQuery && (data.name.toLowerCase().includes(searchQuery) || pos.toLowerCase().includes(searchQuery))) vialEl.classList.add('highlighted');
-                    } else {
-                        tooltipEl.innerText = `${pos}: Empty`;
-                    }
-                }
-            });
-        }
-
-        // --- Calculator Logic ---
-        function formatTime(minutes) {
-            return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
-        }
-
-        function formatVol(mL) {
-            return mL > 1000 ? (mL / 1000).toFixed(2) + ' L' : mL.toFixed(1) + ' mL';
-        }
-
-        function calculateCustomSamples() {
-            const count = parseInt(document.getElementById('calc-samples-input').value) || 0;
-            const res = document.getElementById('calc-result');
-            if (count <= 0) {
-                res.style.display = 'none';
-                return;
-            }
-            res.style.display = 'block';
-
-            const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
-            const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
-            const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
-            const timePerInj = runTimeMin + delayMin;
-
-            let pA = parseFloat(document.getElementById('sol-a').value) || 0;
-            let pB = parseFloat(document.getElementById('sol-b').value) || 0;
-            const sum = pA + pB;
-            if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
-
-            const totalVol = count * timePerInj * flowRate;
-            const reqA = totalVol * pA;
-            const reqB = totalVol * pB;
-
-            document.getElementById('calc-req-a').innerText = formatVol(reqA);
-            document.getElementById('calc-req-b').innerText = formatVol(reqB);
-        }
-
-        function calculateEstimates() {
-            const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
-            const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
-            const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
-            const timePerInj = runTimeMin + delayMin;
-
-            // Gradient Setup
-            let pA = parseFloat(document.getElementById('sol-a').value) || 0;
-            let pB = parseFloat(document.getElementById('sol-b').value) || 0;
-            const sum = pA + pB;
-            if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
-
-            const totalInj = globalSequenceData.length;
-            const comp = completedIndices.size;
-            const remInj = totalInj - comp;
-
-            // PREPARATION CALCULATOR (Totals)
-            const totalMins = totalInj * timePerInj;
-            const totalVol = totalMins * flowRate;
-            document.getElementById('prep-time').innerText = formatTime(totalMins);
-            document.getElementById('prep-vol').innerText = formatVol(totalVol);
-
-            const reqA = totalVol * pA;
-            const reqB = totalVol * pB;
-            document.getElementById('p-vol-a').innerText = formatVol(reqA);
-            document.getElementById('p-vol-b').innerText = formatVol(reqB);
-
-            const botA = parseFloat(document.getElementById('bot-a').value) || 0;
-            const botB = parseFloat(document.getElementById('bot-b').value) || 0;
-            const remA = botA - reqA;
-            const remB = botB - reqB;
-
-            const remAElem = document.getElementById('p-rem-a');
-            remAElem.innerText = formatVol(remA);
-            remAElem.style.color = remA < 0 ? 'var(--danger-color)' : 'inherit';
-
-            const remBElem = document.getElementById('p-rem-b');
-            remBElem.innerText = formatVol(remB);
-            remBElem.style.color = remB < 0 ? 'var(--danger-color)' : 'inherit';
-
-            // RUN MONITOR (Remaining)
-            document.getElementById('est-injections').innerText = `${comp} / ${totalInj}`;
-            document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
-
-            const remMins = remInj * timePerInj;
-            const remVol = remMins * flowRate;
-
-            document.getElementById('est-time').innerText = formatTime(remMins);
-            document.getElementById('est-volume-total').innerText = formatVol(remVol);
-
-            updateEndTime(remMins);
-            calculateCustomSamples();
-        }
-
-        function updateEndTime(remMins) {
-            if (remMins > 0 && globalSequenceData.length > 0) {
-                const now = new Date();
-                const startInput = document.getElementById('start-time-input').value;
-                if (startInput && !isRunning) {
-                    const [hours, minutes] = startInput.split(':').map(Number);
-                    now.setHours(hours, minutes, 0, 0);
-                    if (now < new Date()) {
-                        now.setDate(now.getDate() + 1);
-                    }
-                    const timePerInj = (parseFloat(document.getElementById('runtime-input').value) || 0) + (parseFloat(document.getElementById('delay-input').value) || 0);
-                    remMins = globalSequenceData.length * timePerInj;
-                }
-                now.setMinutes(now.getMinutes() + remMins);
-                document.getElementById('est-end').innerText = now.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-                document.getElementById('est-end').style.color = 'var(--text-primary)';
-            } else if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
-                document.getElementById('est-end').innerText = 'Finished!';
-                document.getElementById('est-end').style.color = 'var(--success-color)';
-            } else {
-                document.getElementById('est-end').innerText = '--:--';
-                document.getElementById('est-end').style.color = 'var(--text-primary)';
-            }
-        }
-
-        function startLiveTimer() {
-            setInterval(() => {
-                document.getElementById('live-clock').innerText = new Date().toLocaleTimeString();
-                if (isRunning) {
-                    const time = (parseFloat(document.getElementById('runtime-input').value) || 0) + (parseFloat(document.getElementById('delay-input').value) || 0);
-                    updateEndTime((globalSequenceData.length - completedIndices.size) * time);
-                }
-            }, 1000);
-        }
-
-        // --- QR and File Import ---
-        function startScanner() {
-            openModal('qr-modal');
-            if (!html5QrcodeScanner) html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
-            html5QrcodeScanner.render((text) => {
-                const seq = document.getElementById('sequence-input');
-                if (text.includes(',') && !text.includes('\n')) text = text.split(',').map(s => s.trim()).join('\n');
-                seq.value = seq.value.trim() === '' ? text : seq.value + '\n' + text;
-                updateVisualization(); stopScanner();
-            }, () => { });
-        }
-        function stopScanner() {
-            if (html5QrcodeScanner) html5QrcodeScanner.clear().catch(e => console.error(e));
-            closeModal('qr-modal');
-        }
-
-        function handleImport(event) {
-            const file = event.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const lines = e.target.result.split(/\r?\n/); let names = [];
-                if (lines.length > 0) {
-                    const hLine = lines[0].toLowerCase();
-                    if (hLine.includes('sample name') && hLine.includes(',')) {
-                        const h = hLine.split(','); const idx = h.findIndex(x => x.trim().replace(/"/g, '') === 'sample name');
-                        if (idx !== -1) {
-                            for (let i = 1; i < lines.length; i++) {
-                                if (!lines[i].trim()) continue;
-                                let n = lines[i].split(',')[idx]?.trim();
-                                if (n) names.push(n.replace(/^"|"$/g, ''));
-                            }
-                        } else names = lines.map(l => l.trim()).filter(Boolean);
-                    } else names = lines.map(l => l.trim()).filter(Boolean);
-                }
-                const seq = document.getElementById('sequence-input');
-                seq.value = seq.value.trim() === '' ? names.join('\n') : seq.value + '\n' + names.join('\n');
-                updateVisualization(); event.target.value = '';
-            };
-            reader.readAsText(file);
-        }
-
-        // --- Export ---
-        function copyChemStationData(type) {
-            if (globalSequenceData.length === 0) return alert('No data to copy.');
-            let arr = [], msg = "";
-            if (type === 'all') { arr = globalSequenceData.map(d => `${d.location}\t${d.name}`); msg = "Copied both columns!"; }
-            else if (type === 'location') { arr = globalSequenceData.map(d => d.location); msg = "Copied locations!"; }
-            else if (type === 'name') { arr = globalSequenceData.map(d => d.name); msg = "Copied names!"; }
-            navigator.clipboard.writeText(arr.join('\n')).then(() => alert(msg)).catch(() => alert('Failed to copy.'));
-        }
-
-        function downloadCSV() {
-            if (globalSequenceData.length === 0) return alert("No data to download.");
-            let csv = "Sample,Vial,Name\n";
-            globalSequenceData.forEach((r, i) => csv += `"${i + 1}","${r.location}","${r.name.replace(/"/g, '""')}"\n`);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            if (window.navigator && window.navigator.msSaveOrOpenBlob) window.navigator.msSaveOrOpenBlob(blob, "Sequence.csv");
+            if (data.isFixed) vialEl.classList.add('fixed');
             else {
-                const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Sequence.csv";
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
+              const lowerName = data.name.toLowerCase();
+              if (lowerName.includes('spike')) vialEl.classList.add('spike');
+              else if (lowerName.includes('std') || lowerName.includes('cal')) vialEl.classList.add('std');
+              else vialEl.classList.add('occupied');
             }
-        }
+            if (allCompleted) vialEl.classList.add('vial-completed');
 
-        createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
-    </script>
-    <footer style="text-align: center; font-size: 10px; color: var(--text-muted); padding: 4px;">
-        &copy; 2026 | ccuadmin01
-    </footer>
+            tooltipEl.innerText = `${pos}: ${data.name} (${data.seqNums.map(n => `#${n}`).join(', ')})`;
+            if (searchQuery && (data.name.toLowerCase().includes(searchQuery) || pos.toLowerCase().includes(searchQuery))) vialEl.classList.add('highlighted');
+          } else {
+            tooltipEl.innerText = `${pos}: Empty`;
+          }
+        }
+      });
+    }
+
+    // --- Calculator Logic ---
+    function formatTime(minutes) {
+      return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
+    }
+
+    function formatVol(mL) {
+      return mL > 1000 ? (mL / 1000).toFixed(2) + ' L' : mL.toFixed(1) + ' mL';
+    }
+
+    function calculateCustomSamples() {
+      const count = parseInt(document.getElementById('calc-samples-input').value) || 0;
+      const res = document.getElementById('calc-result');
+      if (count <= 0) {
+        res.style.display = 'none';
+        return;
+      }
+      res.style.display = 'block';
+
+      const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
+      const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
+      const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
+      const timePerInj = runTimeMin + delayMin;
+
+      let pA = parseFloat(document.getElementById('sol-a').value) || 0;
+      let pB = parseFloat(document.getElementById('sol-b').value) || 0;
+      const sum = pA + pB;
+      if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
+
+      const totalVol = count * timePerInj * flowRate;
+      const reqA = totalVol * pA;
+      const reqB = totalVol * pB;
+
+      document.getElementById('calc-req-a').innerText = formatVol(reqA);
+      document.getElementById('calc-req-b').innerText = formatVol(reqB);
+    }
+
+    function calculateEstimates() {
+      const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
+      const delayMin = parseFloat(document.getElementById('delay-input').value) || 0;
+      const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
+      const timePerInj = runTimeMin + delayMin;
+
+      // Gradient Setup
+      let pA = parseFloat(document.getElementById('sol-a').value) || 0;
+      let pB = parseFloat(document.getElementById('sol-b').value) || 0;
+      const sum = pA + pB;
+      if (sum > 0) { pA /= sum; pB /= sum; } else pA = 1;
+
+      const totalInj = globalSequenceData.length;
+      const comp = completedIndices.size;
+      const remInj = totalInj - comp;
+
+      // PREPARATION CALCULATOR (Totals)
+      const totalMins = totalInj * timePerInj;
+      const totalVol = totalMins * flowRate;
+      document.getElementById('prep-time').innerText = formatTime(totalMins);
+      document.getElementById('prep-vol').innerText = formatVol(totalVol);
+
+      const reqA = totalVol * pA;
+      const reqB = totalVol * pB;
+      document.getElementById('p-vol-a').innerText = formatVol(reqA);
+      document.getElementById('p-vol-b').innerText = formatVol(reqB);
+
+      const botA = parseFloat(document.getElementById('bot-a').value) || 0;
+      const botB = parseFloat(document.getElementById('bot-b').value) || 0;
+      const remA = botA - reqA;
+      const remB = botB - reqB;
+
+      const remAElem = document.getElementById('p-rem-a');
+      remAElem.innerText = formatVol(remA);
+      remAElem.style.color = remA < 0 ? 'var(--danger-color)' : 'inherit';
+
+      const remBElem = document.getElementById('p-rem-b');
+      remBElem.innerText = formatVol(remB);
+      remBElem.style.color = remB < 0 ? 'var(--danger-color)' : 'inherit';
+
+      // RUN MONITOR (Remaining)
+      document.getElementById('est-injections').innerText = `${comp} / ${totalInj}`;
+      document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
+
+      const remMins = remInj * timePerInj;
+      const remVol = remMins * flowRate;
+
+      document.getElementById('est-time').innerText = formatTime(remMins);
+      document.getElementById('est-volume-total').innerText = formatVol(remVol);
+
+      updateEndTime(remMins);
+      calculateCustomSamples();
+    }
+
+    function updateEndTime(remMins) {
+      if (remMins > 0 && globalSequenceData.length > 0) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() + remMins);
+        document.getElementById('est-end').innerText = now.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+        document.getElementById('est-end').style.color = 'var(--text-primary)';
+      } else if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
+        document.getElementById('est-end').innerText = 'Finished!';
+        document.getElementById('est-end').style.color = 'var(--success-color)';
+      } else {
+        document.getElementById('est-end').innerText = '--:--';
+        document.getElementById('est-end').style.color = 'var(--text-primary)';
+      }
+    }
+
+    function startLiveTimer() {
+      setInterval(() => {
+        document.getElementById('live-clock').innerText = new Date().toLocaleTimeString();
+        if (isRunning) {
+          const time = (parseFloat(document.getElementById('runtime-input').value) || 0) + (parseFloat(document.getElementById('delay-input').value) || 0);
+          updateEndTime((globalSequenceData.length - completedIndices.size) * time);
+        }
+      }, 1000);
+    }
+
+    // --- QR and File Import ---
+    function startScanner() {
+      openModal('qr-modal');
+      if (!html5QrcodeScanner) html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+      html5QrcodeScanner.render((text) => {
+        const seq = document.getElementById('sequence-input');
+        if (text.includes(',') && !text.includes('\n')) text = text.split(',').map(s => s.trim()).join('\n');
+        seq.value = seq.value.trim() === '' ? text : seq.value + '\n' + text;
+        updateVisualization(); stopScanner();
+      }, () => { });
+    }
+    function stopScanner() {
+      if (html5QrcodeScanner) html5QrcodeScanner.clear().catch(e => console.error(e));
+      closeModal('qr-modal');
+    }
+
+    function handleImport(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const lines = e.target.result.split(/\r?\n/); let names = [];
+        if (lines.length > 0) {
+          const hLine = lines[0].toLowerCase();
+          if (hLine.includes('sample name') && hLine.includes(',')) {
+            const h = hLine.split(','); const idx = h.findIndex(x => x.trim().replace(/"/g, '') === 'sample name');
+            if (idx !== -1) {
+              for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                let n = lines[i].split(',')[idx]?.trim();
+                if (n) names.push(n.replace(/^"|"$/g, ''));
+              }
+            } else names = lines.map(l => l.trim()).filter(Boolean);
+          } else names = lines.map(l => l.trim()).filter(Boolean);
+        }
+        const seq = document.getElementById('sequence-input');
+        seq.value = seq.value.trim() === '' ? names.join('\n') : seq.value + '\n' + names.join('\n');
+        updateVisualization(); event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    // --- Export ---
+    function copyChemStationData(type) {
+      if (globalSequenceData.length === 0) return alert('No data to copy.');
+      let arr = [], msg = "";
+      if (type === 'all') { arr = globalSequenceData.map(d => `${d.location}\t${d.name}`); msg = "Copied both columns!"; }
+      else if (type === 'location') { arr = globalSequenceData.map(d => d.location); msg = "Copied locations!"; }
+      else if (type === 'name') { arr = globalSequenceData.map(d => d.name); msg = "Copied names!"; }
+      navigator.clipboard.writeText(arr.join('\n')).then(() => alert(msg)).catch(() => alert('Failed to copy.'));
+    }
+
+    function downloadCSV() {
+      if (globalSequenceData.length === 0) return alert("No data to download.");
+      let csv = "Sample,Vial,Name\n";
+      globalSequenceData.forEach((r, i) => csv += `"${i + 1}","${r.location}","${r.name.replace(/"/g, '""')}"\n`);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) window.navigator.msSaveOrOpenBlob(blob, "Sequence.csv");
+      else {
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Sequence.csv";
+        document.body.appendChild(link); link.click(); document.body.removeChild(link);
+      }
+    }
+
+    createBoard(); loadFromCache(); startLiveTimer(); updateVisualization();
+  </script>
+  <footer style="text-align: center; font-size: 10px; color: var(--text-muted); padding: 4px;">
+    &copy; 2026 | ccuadmin01
+  </footer>
 </body>
 
 </html>
