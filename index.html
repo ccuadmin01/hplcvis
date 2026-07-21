@@ -59,7 +59,8 @@
       --border-color: #e0e6e8;
       --border-strong: #ced4d6;
 
-      --success-color: #ffc107; /* Map success/main actions to Yellow */
+      --success-color: #ffc107;
+      /* Map success/main actions to Yellow */
       --success-bg: rgba(255, 193, 7, 0.1);
       --warning-color: #ffb300;
       --warning-bg: rgba(255, 179, 0, 0.1);
@@ -382,7 +383,8 @@
     }
 
     .btn-success:hover {
-      background: #e6a800; /* Darker yellow */
+      background: #e6a800;
+      /* Darker yellow */
     }
 
     .btn-warning {
@@ -591,7 +593,8 @@
 
     .progress-fill {
       height: 100%;
-      background: var(--warning-color); /* Yellow flat progress */
+      background: var(--warning-color);
+      /* Yellow flat progress */
       width: 0%;
       transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       border-radius: var(--radius-full);
@@ -995,6 +998,36 @@
     function openModal(id) { document.getElementById(id).style.display = 'flex'; }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    function playFinishSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        
+        const playTone = (freq, startTime, duration) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          
+          gain.gain.setValueAtTime(0.5, ctx.currentTime + startTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+          
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTime);
+          osc.stop(ctx.currentTime + startTime + duration);
+        };
+
+        playTone(523.25, 0, 0.3); // C5
+        playTone(659.25, 0.15, 0.3); // E5
+        playTone(783.99, 0.3, 0.3); // G5
+        playTone(1046.50, 0.45, 0.6); // C6
+      } catch (e) {
+        console.log("Audio not supported or blocked");
+      }
+    }
+
     function toggleDarkMode() {
       const body = document.body;
       if (body.getAttribute('data-theme') !== 'dark') {
@@ -1221,6 +1254,7 @@
         if (isRunning && !runFinishedAlerted) {
           document.getElementById('finish-time-display').innerText = new Date().toLocaleTimeString();
           openModal('finish-modal');
+          playFinishSound();
           runFinishedAlerted = true;
           toggleRunState(); // this will call saveToCache via its own logic if we want, but we'll do it below
         }
@@ -1329,8 +1363,9 @@
       if (!html5QrcodeScanner) html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
       html5QrcodeScanner.render((text) => {
         const seq = document.getElementById('sequence-input');
+        let currentVal = seq.value.trim();
         if (text.includes(',') && !text.includes('\n')) text = text.split(',').map(s => s.trim()).join('\n');
-        seq.value = seq.value.trim() === '' ? text : seq.value + '\n' + text;
+        seq.value = currentVal === '' ? text : currentVal + '\n' + text;
         updateVisualization(); stopScanner();
       }, () => { });
     }
@@ -1358,7 +1393,8 @@
           } else names = lines.map(l => l.trim()).filter(Boolean);
         }
         const seq = document.getElementById('sequence-input');
-        seq.value = seq.value.trim() === '' ? names.join('\n') : seq.value + '\n' + names.join('\n');
+        let currentVal = seq.value.trim();
+        seq.value = currentVal === '' ? names.join('\n') : currentVal + '\n' + names.join('\n');
         updateVisualization(); event.target.value = '';
       };
       reader.readAsText(file);
