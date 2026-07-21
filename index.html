@@ -955,14 +955,9 @@
       socket.on('sync_state', (state) => {
         let needsUpdate = false;
 
-        if (state.plate !== undefined) { document.getElementById('plate-select').value = state.plate; needsUpdate = true; }
         if (state.injvol !== undefined) { document.getElementById('injvol-input').value = state.injvol; needsUpdate = true; }
         if (state.runtime !== undefined) { document.getElementById('runtime-input').value = state.runtime; needsUpdate = true; }
         if (state.flowrate !== undefined) { document.getElementById('flowrate-input').value = state.flowrate; needsUpdate = true; }
-        if (state.search !== undefined) {
-          const sEl = document.getElementById('search-input');
-          if (sEl && sEl.value !== state.search) { sEl.value = state.search; needsUpdate = true; }
-        }
         if (state.fixed !== undefined && document.getElementById('fixed-input').value !== state.fixed) {
           document.getElementById('fixed-input').value = state.fixed; needsUpdate = true;
         }
@@ -1014,11 +1009,9 @@
     // --- State Management ---
     function saveToCache(skipEmit = false) {
       const cacheData = {
-        plate: document.getElementById('plate-select') ? document.getElementById('plate-select').value : '1',
         injvol: document.getElementById('injvol-input').value,
         runtime: document.getElementById('runtime-input').value,
         flowrate: document.getElementById('flowrate-input').value,
-        search: document.getElementById('search-input') ? document.getElementById('search-input').value : '',
         fixed: document.getElementById('fixed-input').value,
         sequence: document.getElementById('sequence-input').value,
         completed: Array.from(completedIndices),
@@ -1039,11 +1032,9 @@
       if (cachedStr) {
         try {
           const c = JSON.parse(cachedStr);
-          if (c.plate && document.getElementById('plate-select')) document.getElementById('plate-select').value = c.plate;
           if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
           if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
           if (c.flowrate !== undefined) document.getElementById('flowrate-input').value = c.flowrate;
-          if (c.search !== undefined) document.getElementById('search-input').value = c.search;
           if (c.fixed !== undefined) document.getElementById('fixed-input').value = c.fixed;
           if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
           if (c.completed) completedIndices = new Set(c.completed);
