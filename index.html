@@ -1039,22 +1039,24 @@
           if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
           if (c.completed) completedIndices = new Set(c.completed);
           if (c.currentSampleStartTime) currentSampleStartTime = c.currentSampleStartTime;
-          if (c.running === true) { isRunning = false; toggleRunState(); }
+          if (c.running === true) { isRunning = false; toggleRunState(true); }
         } catch (e) { console.error('Cache error', e); }
       }
     }
 
 
     // --- Run Control ---
-    function toggleRunState() {
+    function toggleRunState(isRestore = false) {
       isRunning = !isRunning;
       const btn = document.getElementById('start-run-btn');
       if (isRunning) {
         btn.innerHTML = 'Pause Run';
         btn.classList.replace('btn-success', 'btn-warning');
         runFinishedAlerted = false;
-        // Start tracking time for the current sample
-        currentSampleStartTime = Date.now();
+        // Start tracking time for the current sample only if not restoring from cache
+        if (!isRestore) {
+          currentSampleStartTime = Date.now();
+        }
       } else {
         btn.innerHTML = 'Start Run';
         btn.classList.replace('btn-warning', 'btn-success');
