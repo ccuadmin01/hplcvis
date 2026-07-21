@@ -920,13 +920,21 @@
           <div class="progress-track">
             <div class="progress-fill" id="progress-bar"></div>
           </div>
-          <div style="display:flex; justify-content:flex-end; font-size:11px; color:var(--text-secondary);">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-secondary);">
+            <span>Current: <span id="current-sample-display" style="font-weight:600; color:var(--primary-color);">None</span></span>
             <span id="live-clock">--:--:--</span>
           </div>
         </div>
 
         <!-- Run Queue -->
-        <div class="card-title" style="margin-top:8px;">Run Queue</div>
+        <div
+          style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; margin-bottom:8px;">
+          <div class="card-title" style="margin:0;">Run Queue</div>
+          <div style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">
+            Finished: <span id="samples-finished" style="color:var(--success-color);">0</span> |
+            Remaining: <span id="samples-remaining" style="color:var(--text-primary);">0</span>
+          </div>
+        </div>
         <div class="run-queue" id="seq-list">
           <!-- Queue items injected here via JS -->
         </div>
@@ -1003,16 +1011,16 @@
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext();
-        
+
         const playTone = (freq, startTime, duration) => {
           const osc = ctx.createOscillator();
           const gain = ctx.createGain();
           osc.type = 'sine';
           osc.frequency.value = freq;
-          
+
           gain.gain.setValueAtTime(0.5, ctx.currentTime + startTime);
           gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
-          
+
           osc.connect(gain);
           gain.connect(ctx.destination);
           osc.start(ctx.currentTime + startTime);
@@ -1080,6 +1088,10 @@
 
     // --- Run Control ---
     function toggleRunState(isRestore = false) {
+      if (!isRestore && !isRunning && (!globalSequenceData || globalSequenceData.length === 0)) {
+        alert("Cannot start run. Sequence list is blank.");
+        return;
+      }
       isRunning = !isRunning;
       const btn = document.getElementById('start-run-btn');
       if (isRunning) {
@@ -1295,6 +1307,22 @@
 
       // RUN MONITOR (Remaining)
       document.getElementById('est-injections').innerText = `${comp} / ${totalInj}`;
+
+      const finishedEl = document.getElementById('samples-finished');
+      const remainingEl = document.getElementById('samples-remaining');
+      if (finishedEl) finishedEl.innerText = comp;
+      if (remainingEl) remainingEl.innerText = remInj;
+
+      const currentSampleEl = document.getElementById('current-sample-display');
+      if (currentSampleEl) {
+        if (isRunning && comp < totalInj) {
+           currentSampleEl.innerText = globalSequenceData[comp].name;
+        } else if (comp >= totalInj && totalInj > 0) {
+           currentSampleEl.innerText = "Finished";
+        } else {
+           currentSampleEl.innerText = "None";
+        }
+      }
 
       if (!isRunning) {
         document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
