@@ -23,8 +23,8 @@
   <!-- QR Code Scanning Library -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 
-  <!-- Socket.io for Real-Time Sync -->
-  <script src="/socket.io/socket.io.js"></script>
+  <!-- Supabase for Real-Time Sync -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     /* ============================================================
@@ -921,7 +921,8 @@
             <div class="progress-fill" id="progress-bar"></div>
           </div>
           <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-secondary);">
-            <span>Current: <span id="current-sample-display" style="font-weight:600; color:var(--primary-color);">None</span></span>
+            <span>Current: <span id="current-sample-display"
+                style="font-weight:600; color:var(--primary-color);">None</span></span>
             <span id="live-clock">--:--:--</span>
           </div>
         </div>
@@ -959,47 +960,88 @@
     const DELAY_MINS = 10 / 60; // Constant 10 seconds delay
     let currentSampleStartTime = 0;
 
-    // Socket.io initialization
-    const socket = typeof io !== 'undefined' ? io() : null;
+    // Time Sync to perfectly match progress on mobile and web
+    let serverTimeOffset = 0;
+    function getSyncedTime() {
+      return Date.now() + serverTimeOffset;
+    }
 
-    if (socket) {
-      socket.on('sync_state', (state) => {
-        let needsUpdate = false;
+    // Supabase initialization
+    const SUPABASE_URL = 'https://uuapgenxntmbzwxfixke.supabase.co'; // Replace with your Supabase URL
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1YXBnZW54bnRtYnp3eGZpeGtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMjYyNDMsImV4cCI6MjA3NzgwMjI0M30.pXLR3MrJKLNtkYfC7fAmQkBz_vH-8otrqAiA7LJ7l38'; // Replace with your Supabase anon key
 
-        if (state.injvol !== undefined) { document.getElementById('injvol-input').value = state.injvol; needsUpdate = true; }
-        if (state.runtime !== undefined) { document.getElementById('runtime-input').value = state.runtime; needsUpdate = true; }
-        if (state.flowrate !== undefined) { document.getElementById('flowrate-input').value = state.flowrate; needsUpdate = true; }
-        if (state.fixed !== undefined && document.getElementById('fixed-input').value !== state.fixed) {
-          document.getElementById('fixed-input').value = state.fixed; needsUpdate = true;
-        }
-        if (state.sequence !== undefined && document.getElementById('sequence-input').value !== state.sequence) {
-          document.getElementById('sequence-input').value = state.sequence; needsUpdate = true;
-        }
-        if (state.completed) {
-          completedIndices = new Set(state.completed);
-          needsUpdate = true;
-        }
-        if (state.running !== undefined && state.running !== isRunning) {
-          isRunning = state.running;
-          needsUpdate = true;
-          const btn = document.getElementById('start-run-btn');
-          if (isRunning) {
-            btn.innerHTML = 'Pause Run';
-            btn.classList.replace('btn-success', 'btn-warning');
-          } else {
-            btn.innerHTML = 'Start Run';
-            btn.classList.replace('btn-warning', 'btn-success');
+    const supabase = (typeof window.supabase !== 'undefined' && SUPABASE_URL !== 'YOUR_SUPABASE_URL')
+      ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+      : null;
+
+    if (supabase) {
+      // Sync clock with the server
+      const syncClock = async () => {
+        try {
+          const { data, error } = await supabase.rpc('get_server_time');
+          if (!error && data) {
+            serverTimeOffset = data - Date.now();
           }
+        } catch (e) {
+          console.error('Failed to sync time', e);
         }
-        if (state.currentSampleStartTime !== undefined) {
-          currentSampleStartTime = state.currentSampleStartTime;
-          needsUpdate = true;
-        }
+      };
+      syncClock();
 
-        if (needsUpdate) {
-          updateVisualization(true);
+      // Fetch initial state
+      const fetchInitialState = async () => {
+        const { data, error } = await supabase.from('app_state').select('state_data').eq('id', 1).single();
+        if (!error && data && data.state_data) {
+          applyRemoteState(data.state_data);
         }
-      });
+      };
+      fetchInitialState();
+
+      // Subscribe to real-time changes
+      supabase.channel('app_state_channel')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' }, payload => {
+          applyRemoteState(payload.new.state_data);
+        })
+        .subscribe();
+    }
+
+    function applyRemoteState(state) {
+      if (!state) return;
+      let needsUpdate = false;
+
+      if (state.injvol !== undefined) { document.getElementById('injvol-input').value = state.injvol; needsUpdate = true; }
+      if (state.runtime !== undefined) { document.getElementById('runtime-input').value = state.runtime; needsUpdate = true; }
+      if (state.flowrate !== undefined) { document.getElementById('flowrate-input').value = state.flowrate; needsUpdate = true; }
+      if (state.fixed !== undefined && document.getElementById('fixed-input').value !== state.fixed) {
+        document.getElementById('fixed-input').value = state.fixed; needsUpdate = true;
+      }
+      if (state.sequence !== undefined && document.getElementById('sequence-input').value !== state.sequence) {
+        document.getElementById('sequence-input').value = state.sequence; needsUpdate = true;
+      }
+      if (state.completed) {
+        completedIndices = new Set(state.completed);
+        needsUpdate = true;
+      }
+      if (state.running !== undefined && state.running !== isRunning) {
+        isRunning = state.running;
+        needsUpdate = true;
+        const btn = document.getElementById('start-run-btn');
+        if (isRunning) {
+          btn.innerHTML = 'Pause Run';
+          btn.classList.replace('btn-success', 'btn-warning');
+        } else {
+          btn.innerHTML = 'Start Run';
+          btn.classList.replace('btn-warning', 'btn-success');
+        }
+      }
+      if (state.currentSampleStartTime !== undefined) {
+        currentSampleStartTime = state.currentSampleStartTime;
+        needsUpdate = true;
+      }
+
+      if (needsUpdate) {
+        updateVisualization(true);
+      }
     }
 
     // --- Modal & Theme Logic ---
@@ -1061,8 +1103,10 @@
       };
       localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
 
-      if (!skipEmit && socket) {
-        socket.emit('update_state', cacheData);
+      if (!skipEmit && supabase) {
+        supabase.from('app_state').update({ state_data: cacheData }).eq('id', 1).then(({ error }) => {
+          if (error) console.error('Failed to sync state:', error);
+        });
       }
     }
 
@@ -1100,7 +1144,7 @@
         runFinishedAlerted = false;
         // Start tracking time for the current sample only if not restoring from cache
         if (!isRestore) {
-          currentSampleStartTime = Date.now();
+          currentSampleStartTime = getSyncedTime();
         }
       } else {
         btn.innerHTML = 'Start Run';
@@ -1316,11 +1360,11 @@
       const currentSampleEl = document.getElementById('current-sample-display');
       if (currentSampleEl) {
         if (isRunning && comp < totalInj) {
-           currentSampleEl.innerText = globalSequenceData[comp].name;
+          currentSampleEl.innerText = globalSequenceData[comp].name;
         } else if (comp >= totalInj && totalInj > 0) {
-           currentSampleEl.innerText = "Finished";
+          currentSampleEl.innerText = "Finished";
         } else {
-           currentSampleEl.innerText = "None";
+          currentSampleEl.innerText = "None";
         }
       }
 
@@ -1358,12 +1402,12 @@
 
           if (isRunning) {
             if (completedIndices.size < globalSequenceData.length) {
-              const elapsed = Date.now() - currentSampleStartTime;
+              const elapsed = getSyncedTime() - currentSampleStartTime;
 
               // Auto-advance if sample finished
               if (elapsed >= timePerInjMs) {
                 completedIndices.add(completedIndices.size); // marks the current index complete
-                currentSampleStartTime = Date.now();
+                currentSampleStartTime = getSyncedTime();
                 updateVisualization();
               } else {
                 // Smooth progress update
