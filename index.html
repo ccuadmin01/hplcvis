@@ -783,6 +783,90 @@
       max-width: 500px;
       box-shadow: var(--shadow-lg);
     }
+
+    /* ── Tab Bar ─────────────────────────────────────── */
+    .tab-bar {
+      background: var(--surface-color);
+      border-bottom: 2px solid var(--border-color);
+      display: flex;
+      align-items: flex-end;
+      padding: 0 20px;
+      gap: 4px;
+      position: sticky;
+      top: 56px;
+      z-index: 90;
+    }
+
+    .tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border: 1px solid var(--border-color);
+      border-bottom: none;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: var(--transition);
+      position: relative;
+      bottom: -2px;
+      user-select: none;
+    }
+
+    .tab:hover {
+      background: var(--surface-hover);
+      color: var(--text-primary);
+    }
+
+    .tab.active {
+      background: var(--surface-color);
+      color: var(--primary-color);
+      border-bottom-color: var(--surface-color);
+      z-index: 1;
+    }
+
+    .tab-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-strong);
+      flex-shrink: 0;
+      transition: background var(--transition);
+    }
+
+    .tab.active .tab-dot {
+      background: var(--text-muted);
+    }
+
+    .tab.tab-running .tab-dot {
+      background: var(--warning-color);
+      animation: pulse 2s infinite;
+    }
+
+    .tab-label {
+      pointer-events: none;
+    }
+
+    .tab.active .tab-label {
+      pointer-events: auto;
+      cursor: text;
+    }
+
+    .tab-name-input {
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid var(--primary-color);
+      padding: 0 2px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-color);
+      font-family: var(--font-family);
+      width: 80px;
+      outline: none;
+    }
   </style>
 </head>
 
@@ -800,8 +884,18 @@
     </div>
     <button class="btn-header" onclick="toggleDarkMode()" id="theme-btn">Theme</button>
   </div>
-  </div>
 
+  <!-- INSTRUMENT TAB BAR -->
+  <div class="tab-bar" id="tab-bar">
+    <div class="tab active" id="tab-0" onclick="switchTab(0)">
+      <span class="tab-dot" id="tab-dot-0"></span>
+      <span class="tab-label" id="tab-label-0" onclick="handleTabLabelClick(0, event)">HPLC 1</span>
+    </div>
+    <div class="tab" id="tab-1" onclick="switchTab(1)">
+      <span class="tab-dot" id="tab-dot-1"></span>
+      <span class="tab-label" id="tab-label-1" onclick="handleTabLabelClick(1, event)">HPLC 2</span>
+    </div>
+  </div>
 
 
   <!-- Finish Alert Modal -->
@@ -869,7 +963,7 @@
             <div style="display:flex; gap:4px;">
               <button class="btn-secondary"
                 style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--danger-color); color:var(--danger-color); cursor:pointer;"
-                onclick="document.getElementById('sequence-input').value = ''; updateVisualization();">Clear</button>
+                onclick="if(confirm('Are you sure you want to clear the sample list? This cannot be undone.')){ document.getElementById('sequence-input').value = ''; updateVisualization(); }">Clear</button>
               <button class="btn-secondary"
                 style="padding:4px 8px; font-size:11px; border-radius:4px; border:1px solid var(--border-strong); cursor:pointer;"
                 onclick="startScanner()">Scan QR</button>
@@ -900,20 +994,7 @@
 
         <button id="start-run-btn" class="btn btn-success" onclick="toggleRunState()">Start Run</button>
 
-        <!-- Modern Stats Card -->
-        <div class="card" style="background:var(--surface-alt); border-color:var(--border-color);">
-          <div class="card-title" style="color:var(--primary-color);">Preparation Summary</div>
-          <div class="stats-grid">
-            <div class="stat-box">
-              <span class="stat-label">Total Time</span>
-              <span class="stat-val" id="prep-time">0h 0m</span>
-            </div>
-            <div class="stat-box">
-              <span class="stat-label">Total Volume</span>
-              <span class="stat-val" id="prep-vol">0.0 mL</span>
-            </div>
-          </div>
-        </div>
+
 
         <div class="progress-box">
           <div class="monitor-stats">
@@ -948,28 +1029,43 @@
   </div> <!-- end dashboard -->
 
   <script>
-    // Constants & Globals
+    // ── Constants ───────────────────────────────────────────────────────────────
     const ROWS = ['A', 'B', 'C', 'D', 'E', 'F'];
     const COLS = 11;
-    const CACHE_KEY = 'hplcAestheticCache';
+    const CACHE_PREFIX = 'hplcCache_';
+    const TAB_NAMES_KEY = 'hplcTabNames';
 
+    function makeDefaultTabState() {
+      return {
+        injvol: '10.0', runtime: '15.0', flowrate: '1.0',
+        fixed: 'Methanol=P1:A11', sequence: '',
+        completed: [], running: false,
+        currentSampleStartTime: 0, runFinishedAlerted: false
+      };
+    }
+
+    // Per-instrument tab registry (supabaseId maps to app_state row)
+    const tabs = [
+      { name: 'HPLC 1', supabaseId: 1, state: makeDefaultTabState() },
+      { name: 'HPLC 2', supabaseId: 2, state: makeDefaultTabState() }
+    ];
+    let currentTab = 0;
+
+    // Active-tab live globals
     let globalSequenceData = [];
     let completedIndices = new Set();
     let isRunning = false;
     let runFinishedAlerted = false;
     let html5QrcodeScanner;
 
-    // Simulator State
-    const DELAY_MINS = 10 / 60; // Constant 10 seconds delay
+    const DELAY_MINS = 10 / 60;
     let currentSampleStartTime = 0;
 
-    // Time Sync — ensures progress bar is identical on all devices
+    // Time Sync
     let serverTimeOffset = 0;
-    function getSyncedTime() {
-      return Date.now() + serverTimeOffset;
-    }
+    function getSyncedTime() { return Date.now() + serverTimeOffset; }
 
-    // ── Supabase ──────────────────────────────────────────────────
+    // ── Supabase ─────────────────────────────────────────────────────────────
     const SUPABASE_URL = 'https://uuapgenxntmbzwxfixke.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV1YXBnZW54bnRtYnp3eGZpeGtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIyMjYyNDMsImV4cCI6MjA3NzgwMjI0M30.pXLR3MrJKLNtkYfC7fAmQkBz_vH-8otrqAiA7LJ7l38';
 
@@ -978,48 +1074,42 @@
       : null;
 
     if (sbClient) {
-      // 1. Sync this device's clock to the Supabase server clock
+      // 1. Clock sync
       (async () => {
         try {
           const { data, error } = await sbClient.rpc('get_server_time');
-          if (error) {
-            console.error('Clock RPC error:', error);
-          } else if (data) {
-            serverTimeOffset = data - Date.now();
-            console.log('Clock synced. Offset:', serverTimeOffset, 'ms');
-          }
+          if (!error && data) { serverTimeOffset = data - Date.now(); console.log('Clock synced. Offset:', serverTimeOffset, 'ms'); }
         } catch (e) { console.error('Clock sync failed:', e); }
       })();
 
-      // 2. Load the current shared state from the database on page open
-      (async () => {
-        try {
-          const { data, error } = await sbClient
-            .from('app_state').select('state_data').eq('id', 1).single();
-          if (error) {
-            console.error('State fetch error:', error.message, error.details, error.hint);
-            setSyncStatus('❌ DB Error: ' + error.message, '#f44336');
-          } else if (data?.state_data) {
-            applyRemoteState(data.state_data);
-          }
-        } catch (e) { console.error('Initial state fetch failed:', e); }
-      })();
+      // 2. Load initial state for BOTH tabs
+      for (let _ti = 0; _ti < tabs.length; _ti++) {
+        (async (ti) => {
+          try {
+            const { data, error } = await sbClient
+              .from('app_state').select('state_data').eq('id', tabs[ti].supabaseId).single();
+            if (!error && data?.state_data) routeRemoteState(data.state_data, ti);
+          } catch (e) { console.error('Initial fetch tab', ti, 'failed:', e); }
+        })(_ti);
+      }
 
-      // 3. Subscribe to live updates — any device's save pushes here
-      sbClient.channel('app_state_channel')
+      // 3. Subscribe to live updates for each instrument independently
+      sbClient.channel('hplc_ch_0')
         .on('postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.1' },
-          payload => applyRemoteState(payload.new.state_data)
-        )
-        .subscribe((status, err) => {
+          payload => routeRemoteState(payload.new.state_data, 0)
+        ).subscribe((status, err) => {
           if (status === 'SUBSCRIBED') setSyncStatus('✅ Live Sync ON', '#4caf50');
-          else if (status === 'CHANNEL_ERROR') {
-            console.error('Realtime error:', err);
-            setSyncStatus('❌ Realtime error', '#f44336');
-          } else {
-            setSyncStatus('⏳ ' + status, '#ff9800');
-          }
+          else if (status === 'CHANNEL_ERROR') { console.error('Realtime error:', err); setSyncStatus('❌ Realtime error', '#f44336'); }
+          else setSyncStatus('⏳ ' + status, '#ff9800');
         });
+
+      sbClient.channel('hplc_ch_1')
+        .on('postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'app_state', filter: 'id=eq.2' },
+          payload => routeRemoteState(payload.new.state_data, 1)
+        ).subscribe();
+
     } else {
       setSyncStatus('⚠️ Offline (no Supabase)', '#ff9800');
     }
@@ -1027,14 +1117,33 @@
     function setSyncStatus(text, color) {
       const el = document.getElementById('sync-status');
       if (el) {
-        el.textContent = text;
-        el.style.color = color;
-        el.style.background = '#ffffff';
-        el.style.boxShadow = '0 0 0 2px ' + color + '55';
+        el.textContent = text; el.style.color = color;
+        el.style.background = '#ffffff'; el.style.boxShadow = '0 0 0 2px ' + color + '55';
       }
     }
 
-    // Applies a state object received from Supabase to the local UI
+    // Route incoming Supabase state to the correct tab
+    function routeRemoteState(state, tabIndex) {
+      if (!state) return;
+      if (tabIndex === currentTab) {
+        // Active tab — apply directly to the UI
+        applyRemoteState(state);
+      } else {
+        // Background tab — merge into stored state only
+        const t = tabs[tabIndex].state;
+        if (state.injvol !== undefined) t.injvol = state.injvol;
+        if (state.runtime !== undefined) t.runtime = state.runtime;
+        if (state.flowrate !== undefined) t.flowrate = state.flowrate;
+        if (state.fixed !== undefined) t.fixed = state.fixed;
+        if (state.sequence !== undefined) t.sequence = state.sequence;
+        if (state.completed) t.completed = state.completed;
+        if (state.running !== undefined) t.running = state.running;
+        if (state.currentSampleStartTime != null) t.currentSampleStartTime = state.currentSampleStartTime;
+        updateTabIndicator(tabIndex);
+      }
+    }
+
+    // Applies a remote state object to the ACTIVE tab's UI
     function applyRemoteState(state) {
       if (!state) return;
       let changed = false;
@@ -1052,53 +1161,182 @@
       if (state.currentSampleStartTime != null) { currentSampleStartTime = state.currentSampleStartTime; changed = true; }
 
       if (state.running !== undefined && state.running !== isRunning) {
-        isRunning = state.running;
-        changed = true;
+        isRunning = state.running; changed = true;
         const btn = document.getElementById('start-run-btn');
-        if (isRunning) {
-          btn.innerHTML = 'Pause Run';
-          btn.classList.replace('btn-success', 'btn-warning');
-        } else {
-          btn.innerHTML = 'Start Run';
-          btn.classList.replace('btn-warning', 'btn-success');
-        }
+        if (isRunning) { btn.innerHTML = 'Pause Run'; btn.classList.replace('btn-success', 'btn-warning'); }
+        else { btn.innerHTML = 'Start Run'; btn.classList.replace('btn-warning', 'btn-success'); }
       }
       if (changed) updateVisualization(true);
+      updateTabIndicator(currentTab);
     }
 
-    // --- Modal & Theme Logic ---
-    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+    // ── Tab System ───────────────────────────────────────────────────────────
+    /** Capture the current UI values into a plain object */
+    function getUIState() {
+      return {
+        injvol: document.getElementById('injvol-input').value,
+        runtime: document.getElementById('runtime-input').value,
+        flowrate: document.getElementById('flowrate-input').value,
+        fixed: document.getElementById('fixed-input').value,
+        sequence: document.getElementById('sequence-input').value,
+        completed: Array.from(completedIndices),
+        running: isRunning,
+        currentSampleStartTime,
+        runFinishedAlerted
+      };
+    }
 
-    function playFinishSound() {
+    /** Push a state object into the live UI and globals */
+    function applyUIState(s) {
+      document.getElementById('injvol-input').value = s.injvol ?? '10.0';
+      document.getElementById('runtime-input').value = s.runtime ?? '15.0';
+      document.getElementById('flowrate-input').value = s.flowrate ?? '1.0';
+      document.getElementById('fixed-input').value = s.fixed ?? 'Methanol=P1:A11';
+      document.getElementById('sequence-input').value = s.sequence ?? '';
+      completedIndices = new Set(s.completed || []);
+      isRunning = s.running ?? false;
+      currentSampleStartTime = s.currentSampleStartTime ?? 0;
+      runFinishedAlerted = s.runFinishedAlerted ?? false;
+
+      const btn = document.getElementById('start-run-btn');
+      if (isRunning) {
+        btn.innerHTML = 'Pause Run';
+        btn.className = 'btn btn-warning';
+      } else {
+        btn.innerHTML = 'Start Run';
+        btn.className = 'btn btn-success';
+      }
+      btn.style.cssText = 'font-size:15px;font-weight:700;padding:12px;width:100%;border-radius:var(--radius-md);margin-bottom:16px;letter-spacing:0.5px;';
+    }
+
+    /** Switch to a different instrument tab */
+    function switchTab(newIndex) {
+      if (newIndex === currentTab) return;
+
+      // Snapshot & persist the departing tab
+      tabs[currentTab].state = getUIState();
+      saveTabToLocalStorage(currentTab);
+
+      // Update tab bar visuals
+      document.getElementById('tab-' + currentTab).classList.remove('active');
+      document.getElementById('tab-' + newIndex).classList.add('active');
+      currentTab = newIndex;
+
+      // Restore the arriving tab
+      applyUIState(tabs[currentTab].state);
+      updateVisualization(true);
+      tabs.forEach((_, i) => updateTabIndicator(i));
+    }
+
+    /** Update the dot colour on a tab to reflect its run state */
+    function updateTabIndicator(tabIndex) {
+      const el = document.getElementById('tab-' + tabIndex);
+      if (!el) return;
+      const running = (tabIndex === currentTab) ? isRunning : tabs[tabIndex].state.running;
+      if (running) el.classList.add('tab-running'); else el.classList.remove('tab-running');
+    }
+
+    /** Click handler for tab label — only rename if the tab is already active */
+    function handleTabLabelClick(tabIndex, event) {
+      if (tabIndex !== currentTab) return; // let the tab div's onclick handle switching
+      event.stopPropagation();
+      startRenameTab(tabIndex);
+    }
+
+    /** Inline rename: replaces the label text with an input */
+    function startRenameTab(tabIndex) {
+      const labelEl = document.getElementById('tab-label-' + tabIndex);
+      if (!labelEl || labelEl.querySelector('input')) return; // already editing
+      const savedName = tabs[tabIndex].name;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'tab-name-input';
+      input.value = savedName;
+
+      const finish = () => {
+        const newName = input.value.trim() || savedName;
+        tabs[tabIndex].name = newName;
+        labelEl.textContent = newName;
+        try { localStorage.setItem(TAB_NAMES_KEY, JSON.stringify(tabs.map(t => t.name))); } catch (e) { }
+      };
+      input.onblur = finish;
+      input.onkeydown = (e) => {
+        if (e.key === 'Enter') input.blur();
+        if (e.key === 'Escape') { input.value = savedName; input.blur(); }
+        e.stopPropagation();
+      };
+
+      labelEl.textContent = '';
+      labelEl.appendChild(input);
+      input.focus(); input.select();
+    }
+
+    // ── State Management ─────────────────────────────────────────────────────
+    let _syncTimers = [null, null];
+
+    function saveToCache(skipEmit = false) {
+      saveTabToLocalStorage(currentTab);
+
+      if (!skipEmit && sbClient) {
+        const cacheData = getUIState();
+        delete cacheData.runFinishedAlerted; // not needed in remote state
+        clearTimeout(_syncTimers[currentTab]);
+        _syncTimers[currentTab] = setTimeout(async () => {
+          const { error } = await sbClient.from('app_state')
+            .upsert({ id: tabs[currentTab].supabaseId, state_data: cacheData }, { onConflict: 'id' });
+          if (error) { console.error('Sync failed:', error.message); setSyncStatus('❌ Save failed: ' + error.message, '#f44336'); }
+          else setSyncStatus('✅ Live Sync ON', '#4caf50');
+        }, 400);
+      }
+      tabs.forEach((_, i) => updateTabIndicator(i));
+    }
+
+    function saveTabToLocalStorage(tabIndex) {
+      const state = (tabIndex === currentTab) ? getUIState() : tabs[tabIndex].state;
+      try { localStorage.setItem(CACHE_PREFIX + tabIndex, JSON.stringify(state)); } catch (e) { }
+    }
+
+    function loadFromCache() {
+      // Theme
       try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
+        if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        else document.body.removeAttribute('data-theme');
+      } catch (e) { }
 
-        const playTone = (freq, startTime, duration) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.value = freq;
+      // Tab names
+      try {
+        const names = JSON.parse(localStorage.getItem(TAB_NAMES_KEY) || '[]');
+        names.forEach((name, i) => {
+          if (tabs[i] && name) {
+            tabs[i].name = name;
+            const el = document.getElementById('tab-label-' + i);
+            if (el) el.textContent = name;
+          }
+        });
+      } catch (e) { }
 
-          gain.gain.setValueAtTime(0.5, ctx.currentTime + startTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+      // Per-tab state
+      for (let i = 0; i < tabs.length; i++) {
+        try {
+          const raw = localStorage.getItem(CACHE_PREFIX + i);
+          if (raw) tabs[i].state = { ...makeDefaultTabState(), ...JSON.parse(raw) };
+        } catch (e) { console.error('Cache error tab', i, e); }
+      }
 
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(ctx.currentTime + startTime);
-          osc.stop(ctx.currentTime + startTime + duration);
-        };
+      // Apply active tab to UI
+      applyUIState(tabs[currentTab].state);
 
-        playTone(523.25, 0, 0.3); // C5
-        playTone(659.25, 0.15, 0.3); // E5
-        playTone(783.99, 0.3, 0.3); // G5
-        playTone(1046.50, 0.45, 0.6); // C6
-      } catch (e) {
-        console.log("Audio not supported or blocked");
+      // Restore run state if the active tab was running
+      if (tabs[currentTab].state.running) {
+        tabs[currentTab].state.running = false; // prevent double-toggle
+        toggleRunState(true);
       }
     }
+
+    // ── Modal & Theme Logic ──────────────────────────────────────────────────
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     function toggleDarkMode() {
       const body = document.body;
@@ -1111,64 +1349,26 @@
       }
     }
 
-    // ── State Management ─────────────────────────────────────────
-    let _syncTimer = null;
-    function saveToCache(skipEmit = false) {
-      const cacheData = {
-        injvol: document.getElementById('injvol-input').value,
-        runtime: document.getElementById('runtime-input').value,
-        flowrate: document.getElementById('flowrate-input').value,
-        fixed: document.getElementById('fixed-input').value,
-        sequence: document.getElementById('sequence-input').value,
-        completed: Array.from(completedIndices),
-        running: isRunning,
-        currentSampleStartTime: currentSampleStartTime
-      };
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData)); } catch (e) { }
-
-      // Push to Supabase with 400 ms debounce to avoid hammering the DB on every keystroke
-      if (!skipEmit && sbClient) {
-        clearTimeout(_syncTimer);
-        _syncTimer = setTimeout(async () => {
-          // Use upsert so it works even if the row doesn't exist yet
-          const { error } = await sbClient.from('app_state')
-            .upsert({ id: 1, state_data: cacheData }, { onConflict: 'id' });
-          if (error) {
-            console.error('Sync failed:', error.message, error.details, error.hint);
-            setSyncStatus('❌ Save failed: ' + error.message, '#f44336');
-          } else {
-            setSyncStatus('✅ Live Sync ON', '#4caf50');
-          }
-        }, 400);
-      }
-    }
-
-    function loadFromCache() {
+    function playFinishSound() {
       try {
-        if (localStorage.getItem('theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
-        else document.body.removeAttribute('data-theme');
-      } catch (e) { }
-
-      let cachedStr = null;
-      try { cachedStr = localStorage.getItem(CACHE_KEY); } catch (e) { }
-
-      if (cachedStr) {
-        try {
-          const c = JSON.parse(cachedStr);
-          if (c.injvol !== undefined) document.getElementById('injvol-input').value = c.injvol;
-          if (c.runtime !== undefined) document.getElementById('runtime-input').value = c.runtime;
-          if (c.flowrate !== undefined) document.getElementById('flowrate-input').value = c.flowrate;
-          if (c.fixed !== undefined) document.getElementById('fixed-input').value = c.fixed;
-          if (c.sequence !== undefined) document.getElementById('sequence-input').value = c.sequence;
-          if (c.completed) completedIndices = new Set(c.completed);
-          if (c.currentSampleStartTime) currentSampleStartTime = c.currentSampleStartTime;
-          if (c.running === true) { isRunning = false; toggleRunState(true); }
-        } catch (e) { console.error('Cache error', e); }
-      }
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const playTone = (freq, startTime, duration) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine'; osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.5, ctx.currentTime + startTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + startTime + duration);
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + startTime); osc.stop(ctx.currentTime + startTime + duration);
+        };
+        playTone(523.25, 0, 0.3); playTone(659.25, 0.15, 0.3);
+        playTone(783.99, 0.3, 0.3); playTone(1046.50, 0.45, 0.6);
+      } catch (e) { console.log('Audio not supported or blocked'); }
     }
 
-
-    // --- Run Control ---
+    // ── Run Control ──────────────────────────────────────────────────────────
     function toggleRunState(isRestore = false) {
       if (!isRestore && !isRunning && (!globalSequenceData || globalSequenceData.length === 0)) {
         alert('Cannot start run. Sequence list is blank.');
@@ -1195,9 +1395,8 @@
       saveToCache();
     }
 
-
     function resetProgress() {
-      if (confirm("Reset all checkmarks?")) {
+      if (confirm('Reset all checkmarks?')) {
         completedIndices.clear();
         runFinishedAlerted = false;
         if (isRunning) toggleRunState();
@@ -1205,7 +1404,7 @@
       }
     }
 
-    // --- Core Logic ---
+    // ── Core Logic ───────────────────────────────────────────────────────────
     function parseFixedVials() {
       const rawFixed = document.getElementById('fixed-input').value;
       const fixedMap = {};
@@ -1213,12 +1412,11 @@
         const parts = item.split('=').map(s => s.trim());
         if (parts.length === 2 && parts[0] && parts[1]) {
           const name = parts[0].toLowerCase();
-          let pos = parts[1].toUpperCase();
-          let plate = 1;
+          let pos = parts[1].toUpperCase(), plate = 1;
           if (pos.includes(':')) {
-            const posParts = pos.split(':');
-            plate = parseInt(posParts[0].replace('P', '')) || 1;
-            pos = posParts[1];
+            const pp = pos.split(':');
+            plate = parseInt(pp[0].replace('P', '')) || 1;
+            pos = pp[1];
           }
           fixedMap[name] = { plate, pos, originalName: parts[0] };
         }
@@ -1244,12 +1442,10 @@
       let expandedSamples = [];
       rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0).forEach(line => {
         const match = line.match(/^(.*?)\s*[\*xX]\s*(\d+)$/);
-        if (match) {
-          for (let i = 0; i < parseInt(match[2], 10); i++) expandedSamples.push(match[1].trim());
-        } else expandedSamples.push(line);
+        if (match) { for (let i = 0; i < parseInt(match[2], 10); i++) expandedSamples.push(match[1].trim()); }
+        else expandedSamples.push(line);
       });
 
-      // Cleanup orphan checkboxes
       const validIndices = new Set();
       completedIndices.forEach(idx => { if (idx < expandedSamples.length) validIndices.add(idx); });
       completedIndices = validIndices;
@@ -1300,39 +1496,43 @@
           else vialMap[samplePos].seqNums.push(index + 1);
         }
 
-        let badgeClass = 'pending';
-        let badgeText = 'Pending';
-        if (isCompleted) {
-          badgeClass = 'completed';
-          badgeText = 'Completed';
-        } else if (isRunning && index === completedIndices.size) {
-          badgeClass = 'running';
-          badgeText = 'Running';
-        }
+        let badgeClass = 'pending', badgeText = 'Pending';
+        if (isCompleted) { badgeClass = 'completed'; badgeText = 'Completed'; }
+        else if (isRunning && index === completedIndices.size) { badgeClass = 'running'; badgeText = 'Running'; }
 
-        let typeHtml = isFixed ? '<span style="font-size:10px; color:var(--text-muted); margin-left:4px;">(Fixed)</span>' : '';
+        let typeHtml = isFixed ? '<span style="font-size:10px;color:var(--text-muted);margin-left:4px;">(Fixed)</span>' : '';
         if (!isFixed) {
-          if (lowerName.includes('spike')) typeHtml = '<span style="color:var(--spike-border); font-size:10px; margin-left:4px;">[Spike]</span>';
-          else if (lowerName.includes('std') || lowerName.includes('cal')) typeHtml = '<span style="color:var(--std-border); font-size:10px; margin-left:4px;">[Std]</span>';
+          if (lowerName.includes('spike')) typeHtml = '<span style="color:var(--spike-border);font-size:10px;margin-left:4px;">[Spike]</span>';
+          else if (lowerName.includes('std') || lowerName.includes('cal')) typeHtml = '<span style="color:var(--std-border);font-size:10px;margin-left:4px;">[Std]</span>';
         }
 
         const listItem = document.createElement('div');
         listItem.className = 'queue-item';
-        if (searchQuery && (sampleName.toLowerCase().includes(searchQuery) || samplePos.toLowerCase().includes(searchQuery))) {
+        if (searchQuery && (sampleName.toLowerCase().includes(searchQuery) || samplePos.toLowerCase().includes(searchQuery)))
           listItem.style.borderColor = 'var(--highlight-border)';
-        }
+
+        const isCurrentlyRunning = (badgeClass === 'running');
+        const isLocked = isRunning && !isCompleted && !isCurrentlyRunning;
+        const lockIcon = isLocked ? '<span title="Locked during run" style="font-size:12px;color:var(--text-muted);">🔒</span>' : '';
+        const cbDisabled = (isLocked || isRunning) ? 'disabled' : '';
+        const cbStyle = (isLocked || isRunning) ? 'width:14px;height:14px;margin:0;opacity:0.4;cursor:not-allowed;' : 'width:14px;height:14px;margin:0;';
 
         listItem.innerHTML = `
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <input type="checkbox" style="width:14px; height:14px; margin:0;" ${isCompleted ? 'checked' : ''}>
-                    <span style="font-weight:600; width:35px;">${fullLocation}</span>
-                    <span style="font-weight:500;">${index + 1}. ${sampleName} ${typeHtml}</span>
-                  </div>
-                  <span class="badge ${badgeClass}">${badgeText}</span>
-                `;
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${lockIcon}
+            <input type="checkbox" style="${cbStyle}" ${isCompleted ? 'checked' : ''} ${cbDisabled}>
+            <span style="font-weight:600;width:35px;">${fullLocation}</span>
+            <span style="font-weight:500;">${index + 1}. ${sampleName} ${typeHtml}</span>
+          </div>
+          <span class="badge ${badgeClass}">${badgeText}</span>
+        `;
 
-        listItem.onclick = (e) => { if (e.target.type !== 'checkbox') toggleCompletion(index); };
-        listItem.querySelector('input').onchange = () => toggleCompletion(index);
+        if (!isRunning) {
+          listItem.onclick = (e) => { if (e.target.type !== 'checkbox') toggleCompletion(index); };
+          listItem.querySelector('input').onchange = () => toggleCompletion(index);
+        } else {
+          listItem.style.cursor = 'default';
+        }
 
         if (seqListEl) seqListEl.appendChild(listItem);
       });
@@ -1345,44 +1545,30 @@
           openModal('finish-modal');
           playFinishSound();
           runFinishedAlerted = true;
-          toggleRunState(); // this will call saveToCache via its own logic if we want, but we'll do it below
+          toggleRunState();
         }
       } else {
         runFinishedAlerted = false;
       }
 
-      if (!skipEmit) {
-        saveToCache(false);
-      }
+      if (!skipEmit) saveToCache(false);
       seqListEl.scrollTop = currentScroll;
     }
 
-
-    // --- Calculator Logic ---
-    function formatTime(minutes) {
-      return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`;
-    }
-
-    function formatVol(mL) {
-      return mL > 1000 ? (mL / 1000).toFixed(2) + ' L' : mL.toFixed(1) + ' mL';
-    }
+    // ── Calculator Logic ─────────────────────────────────────────────────────
+    function formatTime(minutes) { return `${Math.floor(minutes / 60)}h ${Math.round(minutes % 60)}m`; }
+    function formatVol(mL) { return mL > 1000 ? (mL / 1000).toFixed(2) + ' L' : mL.toFixed(1) + ' mL'; }
 
     function calculateEstimates() {
       const runTimeMin = parseFloat(document.getElementById('runtime-input').value) || 0;
       const flowRate = parseFloat(document.getElementById('flowrate-input').value) || 0;
       const timePerInj = runTimeMin + DELAY_MINS;
-
       const totalInj = globalSequenceData.length;
       const comp = completedIndices.size;
       const remInj = totalInj - comp;
 
-      // PREPARATION CALCULATOR (Totals)
-      const totalMins = totalInj * timePerInj;
-      const totalVol = totalMins * flowRate;
-      document.getElementById('prep-time').innerText = formatTime(totalMins);
-      document.getElementById('prep-vol').innerText = formatVol(totalVol);
+      // (Preparation summary removed)
 
-      // RUN MONITOR (Remaining)
       document.getElementById('est-injections').innerText = `${comp} / ${totalInj}`;
 
       const finishedEl = document.getElementById('samples-finished');
@@ -1390,34 +1576,31 @@
       if (finishedEl) finishedEl.innerText = comp;
       if (remainingEl) remainingEl.innerText = remInj;
 
-      const currentSampleEl = document.getElementById('current-sample-display');
-      if (currentSampleEl) {
-        if (isRunning && comp < totalInj) currentSampleEl.innerText = globalSequenceData[comp].name;
-        else if (comp >= totalInj && totalInj > 0) currentSampleEl.innerText = 'Finished';
-        else currentSampleEl.innerText = 'None';
+      const curSampleEl = document.getElementById('current-sample-display');
+      if (curSampleEl) {
+        if (isRunning && comp < totalInj) curSampleEl.innerText = globalSequenceData[comp].name;
+        else if (comp >= totalInj && totalInj > 0) curSampleEl.innerText = 'Finished';
+        else curSampleEl.innerText = 'None';
       }
 
       if (!isRunning) {
         document.getElementById('progress-bar').style.width = totalInj === 0 ? '0%' : `${(comp / totalInj) * 100}%`;
-        updateEndTime(-1); // Hide end time if not running
+        updateEndTime(-1);
       } else {
-        const remMins = remInj * timePerInj;
-        updateEndTime(remMins);
+        updateEndTime(remInj * timePerInj);
       }
     }
 
     function updateEndTime(remMins) {
+      const el = document.getElementById('est-end');
       if (remMins > 0 && globalSequenceData.length > 0) {
-        const now = new Date();
-        now.setTime(now.getTime() + remMins * 60000); // add exactly in milliseconds
-        document.getElementById('est-end').innerText = now.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-        document.getElementById('est-end').style.color = 'var(--text-primary)';
+        const now = new Date(); now.setTime(now.getTime() + remMins * 60000);
+        el.innerText = now.toLocaleString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+        el.style.color = 'var(--text-primary)';
       } else if (globalSequenceData.length > 0 && completedIndices.size === globalSequenceData.length) {
-        document.getElementById('est-end').innerText = 'Finished!';
-        document.getElementById('est-end').style.color = 'var(--success-color)';
+        el.innerText = 'Finished!'; el.style.color = 'var(--success-color)';
       } else {
-        document.getElementById('est-end').innerText = '--:--';
-        document.getElementById('est-end').style.color = 'var(--text-primary)';
+        el.innerText = '--:--'; el.style.color = 'var(--text-primary)';
       }
     }
 
@@ -1432,41 +1615,35 @@
           if (isRunning) {
             if (completedIndices.size < globalSequenceData.length) {
               const elapsed = getSyncedTime() - currentSampleStartTime;
-
-              // Auto-advance if sample finished
               if (elapsed >= timePerInjMs) {
                 completedIndices.add(completedIndices.size);
                 currentSampleStartTime = getSyncedTime();
                 updateVisualization();
               } else {
-                // Smooth progress update
                 const totalMsNeeded = globalSequenceData.length * timePerInjMs;
                 const totalMsElapsed = (completedIndices.size * timePerInjMs) + elapsed;
-                const progressPct = Math.min((totalMsElapsed / totalMsNeeded) * 100, 100);
-
-                document.getElementById('progress-bar').style.width = `${progressPct}%`;
-
-                const totalRemMs = totalMsNeeded - totalMsElapsed;
-                updateEndTime(totalRemMs / 60000);
+                document.getElementById('progress-bar').style.width =
+                  `${Math.min((totalMsElapsed / totalMsNeeded) * 100, 100)}%`;
+                updateEndTime((totalMsNeeded - totalMsElapsed) / 60000);
               }
             }
           } else {
-            // Hide estimated end time if not running
             updateEndTime(-1);
           }
         }
-      }, 500); // Check twice a second for smooth progress updates
+      }, 500);
     }
 
-    // --- QR and File Import ---
+    // ── QR and File Import ───────────────────────────────────────────────────
     function startScanner() {
       openModal('qr-modal');
-      if (!html5QrcodeScanner) html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+      if (!html5QrcodeScanner)
+        html5QrcodeScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
       html5QrcodeScanner.render((text) => {
         const seq = document.getElementById('sequence-input');
-        let currentVal = seq.value.trim();
+        let cv = seq.value.trim();
         if (text.includes(',') && !text.includes('\n')) text = text.split(',').map(s => s.trim()).join('\n');
-        seq.value = currentVal === '' ? text : currentVal + '\n' + text;
+        seq.value = cv === '' ? text : cv + '\n' + text;
         updateVisualization(); stopScanner();
       }, () => { });
     }
@@ -1483,7 +1660,8 @@
         if (lines.length > 0) {
           const hLine = lines[0].toLowerCase();
           if (hLine.includes('sample name') && hLine.includes(',')) {
-            const h = hLine.split(','); const idx = h.findIndex(x => x.trim().replace(/"/g, '') === 'sample name');
+            const h = hLine.split(',');
+            const idx = h.findIndex(x => x.trim().replace(/"/g, '') === 'sample name');
             if (idx !== -1) {
               for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
@@ -1494,31 +1672,31 @@
           } else names = lines.map(l => l.trim()).filter(Boolean);
         }
         const seq = document.getElementById('sequence-input');
-        let currentVal = seq.value.trim();
-        seq.value = currentVal === '' ? names.join('\n') : currentVal + '\n' + names.join('\n');
+        let cv = seq.value.trim();
+        seq.value = cv === '' ? names.join('\n') : cv + '\n' + names.join('\n');
         updateVisualization(); event.target.value = '';
       };
       reader.readAsText(file);
     }
 
-    // --- Export ---
+    // ── Export ───────────────────────────────────────────────────────────────
     function copyChemStationData(type) {
       if (globalSequenceData.length === 0) return alert('No data to copy.');
-      let arr = [], msg = "";
-      if (type === 'all') { arr = globalSequenceData.map(d => `${d.location}\t${d.name}`); msg = "Copied both columns!"; }
-      else if (type === 'location') { arr = globalSequenceData.map(d => d.location); msg = "Copied locations!"; }
-      else if (type === 'name') { arr = globalSequenceData.map(d => d.name); msg = "Copied names!"; }
+      let arr = [], msg = '';
+      if (type === 'all') { arr = globalSequenceData.map(d => `${d.location}\t${d.name}`); msg = 'Copied both columns!'; }
+      else if (type === 'location') { arr = globalSequenceData.map(d => d.location); msg = 'Copied locations!'; }
+      else if (type === 'name') { arr = globalSequenceData.map(d => d.name); msg = 'Copied names!'; }
       navigator.clipboard.writeText(arr.join('\n')).then(() => alert(msg)).catch(() => alert('Failed to copy.'));
     }
 
     function downloadCSV() {
-      if (globalSequenceData.length === 0) return alert("No data to download.");
-      let csv = "Sample,Vial,Name\n";
+      if (globalSequenceData.length === 0) return alert('No data to download.');
+      let csv = 'Sample,Vial,Name\n';
       globalSequenceData.forEach((r, i) => csv += `"${i + 1}","${r.location}","${r.name.replace(/"/g, '""')}"\n`);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      if (window.navigator && window.navigator.msSaveOrOpenBlob) window.navigator.msSaveOrOpenBlob(blob, "Sequence.csv");
+      if (window.navigator && window.navigator.msSaveOrOpenBlob) window.navigator.msSaveOrOpenBlob(blob, 'Sequence.csv');
       else {
-        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = "Sequence.csv";
+        const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = 'Sequence.csv';
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
       }
     }
